@@ -81,7 +81,7 @@ jobs:
         run: |
           cat > local.properties << EOF
           sdk.dir=${ANDROID_SDK_ROOT}
-          ndk.dir=${ANDROID_NDK_ROOT}
+          ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.2.12479018
           EOF
 
       - name: Build Debug APK (regular)
@@ -147,7 +147,7 @@ jobs:
         run: |
           cat > local.properties << EOF
           sdk.dir=${ANDROID_SDK_ROOT}
-          ndk.dir=${ANDROID_NDK_ROOT}
+          ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.2.12479018
           EOF
 
       - name: Run Lint
@@ -213,7 +213,7 @@ jobs:
         run: |
           cat > local.properties << EOF
           sdk.dir=${ANDROID_SDK_ROOT}
-          ndk.dir=${ANDROID_NDK_ROOT}
+          ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.2.12479018
           RELEASE_STORE_PASSWORD=${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_PASSWORD=${{ secrets.RELEASE_KEY_PASSWORD }}
           RELEASE_KEY_ALIAS=${{ secrets.RELEASE_KEY_ALIAS }}
