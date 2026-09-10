@@ -25,17 +25,18 @@ jobs:
 
       - name: Init submodules (resilient to broken nested submodules)
         run: |
-          set -e
           git submodule sync --recursive
 
-          echo "=== Initializing top-level submodules (non-recursive) ==="
-          git submodule update --init --depth 1
-
-          echo "=== Recursively updating each submodule individually ==="
+          echo "=== Initializing submodules listed in .gitmodules (explicit paths only) ==="
           git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read -r path; do
-            echo "--- $path ---"
+            echo "--- $path (shallow) ---"
+            if ! git submodule update --init --depth 1 -- "$path"; then
+              echo "WARNING: shallow init failed for '$path'. Skipping."
+              continue
+            fi
+            echo "--- $path (recursive) ---"
             if ! git submodule update --init --recursive -- "$path"; then
-              echo "WARNING: recursive init failed for '$path' (likely a broken nested submodule reference). Continuing without it."
+              echo "WARNING: recursive init failed for '$path' (likely a broken nested submodule reference). Continuing with shallow content only."
             fi
           done
 
@@ -143,13 +144,18 @@ jobs:
 
       - name: Init submodules (resilient to broken nested submodules)
         run: |
-          set -e
           git submodule sync --recursive
-          git submodule update --init --depth 1
+
+          echo "=== Initializing submodules listed in .gitmodules (explicit paths only) ==="
           git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read -r path; do
-            echo "--- $path ---"
+            echo "--- $path (shallow) ---"
+            if ! git submodule update --init --depth 1 -- "$path"; then
+              echo "WARNING: shallow init failed for '$path'. Skipping."
+              continue
+            fi
+            echo "--- $path (recursive) ---"
             if ! git submodule update --init --recursive -- "$path"; then
-              echo "WARNING: recursive init failed for '$path'. Continuing without it."
+              echo "WARNING: recursive init failed for '$path' (likely a broken nested submodule reference). Continuing with shallow content only."
             fi
           done
 
@@ -209,13 +215,18 @@ jobs:
 
       - name: Init submodules (resilient to broken nested submodules)
         run: |
-          set -e
           git submodule sync --recursive
-          git submodule update --init --depth 1
+
+          echo "=== Initializing submodules listed in .gitmodules (explicit paths only) ==="
           git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read -r path; do
-            echo "--- $path ---"
+            echo "--- $path (shallow) ---"
+            if ! git submodule update --init --depth 1 -- "$path"; then
+              echo "WARNING: shallow init failed for '$path'. Skipping."
+              continue
+            fi
+            echo "--- $path (recursive) ---"
             if ! git submodule update --init --recursive -- "$path"; then
-              echo "WARNING: recursive init failed for '$path'. Continuing without it."
+              echo "WARNING: recursive init failed for '$path' (likely a broken nested submodule reference). Continuing with shallow content only."
             fi
           done
 
