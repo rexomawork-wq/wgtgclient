@@ -19,6 +19,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Verify submodules checked out
+        run: |
+          echo "=== jlatexmath contents ==="
+          ls -la TMessagesProj/lib/jlatexmath/jlatexmath || echo "DIRECTORY MISSING OR EMPTY"
+          echo "=== git submodule status ==="
+          git submodule status
 
       - name: Free disk space
         run: |
@@ -111,6 +121,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -162,6 +175,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
       - name: Check keystore secret
         id: check_secret
