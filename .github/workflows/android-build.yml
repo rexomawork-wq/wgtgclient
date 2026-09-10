@@ -51,6 +51,10 @@ jobs:
           build-tools-version: 36.0.0
           cmake-version: 3.22.1
 
+      - name: Install exact NDK version
+        run: |
+          echo "y" | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "ndk;27.2.12479018"
+
       - name: Cache Gradle packages
         uses: actions/cache@v4
         with:
@@ -122,6 +126,10 @@ jobs:
           ndk-version: 27.2.12479018
           build-tools-version: 36.0.0
 
+      - name: Install exact NDK version
+        run: |
+          echo "y" | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "ndk;27.2.12479018"
+
       - name: Cache Gradle packages
         uses: actions/cache@v4
         with:
@@ -183,6 +191,10 @@ jobs:
           ndk-version: 27.2.12479018
           build-tools-version: 36.0.0
           cmake-version: 3.22.1
+
+      - name: Install exact NDK version
+        run: |
+          echo "y" | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "ndk;27.2.12479018"
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
