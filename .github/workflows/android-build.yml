@@ -153,12 +153,7 @@ jobs:
     name: Build Release APKs (optional)
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && env.KEYSTORE_BASE64 != ''
-    env:
-      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-      RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-      RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-      RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && secrets.KEYSTORE_BASE64 != ''
 
     steps:
       - name: Checkout repository
