@@ -27,14 +27,34 @@ public class LauncherIconController {
     public static void setIcon(LauncherIcon icon) {
         Context ctx = ApplicationLoader.applicationContext;
         PackageManager pm = ctx.getPackageManager();
+        // Keep a launcher entry available while switching aliases.
+        pm.setComponentEnabledSetting(icon.getComponentName(ctx), PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
         for (LauncherIcon i : LauncherIcon.values()) {
-            pm.setComponentEnabledSetting(i.getComponentName(ctx), i == icon ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED :
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+            if (i != icon) {
+                pm.setComponentEnabledSetting(i.getComponentName(ctx), PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+            }
         }
     }
 
+    public static boolean useWgtgNotificationIcon() {
+        return ApplicationLoader.applicationContext.getSharedPreferences("wgtg_branding", Context.MODE_PRIVATE)
+                .getBoolean("notification_wgtg", false);
+    }
+
+    public static void setUseWgtgNotificationIcon(boolean enabled) {
+        ApplicationLoader.applicationContext.getSharedPreferences("wgtg_branding", Context.MODE_PRIVATE)
+                .edit().putBoolean("notification_wgtg", enabled).apply();
+    }
+
+    // Notification builders must use this resource instead of the fixed notification drawable.
+    public static int getNotificationSmallIcon() {
+        return useWgtgNotificationIcon() ? R.drawable.wgtg_notification : R.drawable.notification;
+    }
+
     public enum LauncherIcon {
-        DEFAULT("DefaultIcon", R.drawable.icon_background_sa, R.mipmap.icon_foreground_sa, R.string.AppIconDefault),
+        DEFAULT("DefaultIcon", R.color.wgtg_launcher_background, R.drawable.wgtg_launcher_foreground, R.string.AppIconDefault),
+        NIGHT_WGTG("NightWgtgIcon", R.color.wgtg_night_background, R.drawable.wgtg_icon_foreground, R.string.WgtgIconNight),
+        RGB_WGTG("RgbWgtgIcon", R.drawable.wgtg_rgb_background, R.drawable.wgtg_icon_foreground, R.string.WgtgIconRgb),
         VINTAGE("VintageIcon", R.drawable.icon_6_background_sa, R.mipmap.icon_6_foreground_sa, R.string.AppIconVintage),
         AQUA("AquaIcon", R.drawable.icon_4_background_sa, R.mipmap.icon_foreground_sa, R.string.AppIconAqua),
         PREMIUM("PremiumIcon", R.drawable.icon_3_background_sa, R.mipmap.icon_3_foreground_sa, R.string.AppIconPremium, true),

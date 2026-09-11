@@ -8,6 +8,15 @@
     <string name="WgtgAddChat">Добавить чат</string>
     <string name="WgtgPlay">Запустить общий плейлист</string>
     <string name="WgtgNoMusic">В выбранных чатах музыка не найдена</string>
+    <string name="WgtgPlugins">Плагины</string>
+    <string name="WgtgPluginsWarning">Движок плагинов Python 3.11. Поддерживает .plugin, .py и ZIP-архивы Elyx. Доступны базовый lifecycle exteraGram, хранилище настроек, перехват запросов и исходящих сообщений. Xposed-хуки, добавление пунктов меню, wheels и PIP-зависимости пока не поддерживаются.</string>
+    <string name="WgtgPluginAccessWarning">Плагины являются исполняемым кодом и получают те же данные Telegram и разрешения, что и wgtg. Устанавливай только доверенный код. Вредоносный плагин может читать сообщения или отправлять запросы от твоего имени.</string>
+    <string name="WgtgInstallPlugin">Установить плагин</string>
+    <string name="WgtgRemovePlugin">Удалить плагин</string>
+    <string name="WgtgPluginsStarting">Python запускается…</string>
+    <string name="WgtgNoPlugins">Плагины не установлены</string>
+    <string name="WgtgPluginError">Ошибка плагина</string>
+    <string name="WgtgPluginInstalled">Плагин установлен; включи его ниже</string>
     <string name="WgtgNicknameInfo">Цвета имён отправителей в чатах видны только на этом устройстве. Chroma плавно меняет оттенок, RGB показывает движущуюся радугу. Имена с подписью бота сохраняют исходный стиль.</string>
     <string name="WgtgOff">Выключено</string>
     <string name="WgtgApplyColor">Применить static цвет</string>

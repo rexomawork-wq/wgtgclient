@@ -387,7 +387,16 @@ public class ConnectionsManager extends BaseController {
         return requestToken;
     }
 
-    private void sendRequestInternal(TLObject object, RequestDelegate onComplete, RequestDelegateTimestamp onCompleteTimestamp, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket, int flags, int datacenterId, int connectionType, boolean immediate, int requestToken) {
+    private void sendRequestInternal(TLObject originalObject, RequestDelegate onComplete, RequestDelegateTimestamp onCompleteTimestamp, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket, int flags, int datacenterId, int connectionType, boolean immediate, int requestToken) {
+        final TLObject object = org.telegram.messenger.WgtgPluginsController.beforeRequest(currentAccount, originalObject);
+        if (object == null) {
+            TLRPC.TL_error error = new TLRPC.TL_error();
+            error.code = -1;
+            error.text = "WGTG_PLUGIN_CANCELLED";
+            if (onComplete != null) onComplete.run(null, error);
+            if (onCompleteTimestamp != null) onCompleteTimestamp.run(null, error, System.currentTimeMillis());
+            return;
+        }
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("send request " + object + " with token = " + requestToken);
         }

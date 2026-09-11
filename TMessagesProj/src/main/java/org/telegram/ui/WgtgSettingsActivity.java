@@ -75,6 +75,20 @@ public class WgtgSettingsActivity extends BaseFragment {
         confirm.setChecked(WgtgConfig.confirmMedia);
         confirm.setOnCheckedChangeListener((button, checked) -> WgtgConfig.setConfirmMedia(checked));
         content.addView(confirm);
+        TextView icons = text(context, LocaleController.getString(R.string.WgtgIcons));
+        icons.setOnClickListener(v -> {
+            WgtgIconSettingsActivity fragment = new WgtgIconSettingsActivity();
+            fragment.setCurrentAccount(currentAccount);
+            presentFragment(fragment);
+        });
+        content.addView(icons);
+        TextView plugins = text(context, LocaleController.getString(R.string.WgtgPlugins));
+        plugins.setOnClickListener(v -> {
+            WgtgPluginsActivity fragment = new WgtgPluginsActivity();
+            fragment.setCurrentAccount(currentAccount);
+            presentFragment(fragment);
+        });
+        content.addView(plugins);
         TextView playlist = text(context, LocaleController.getString(R.string.WgtgPlaylist));
         playlist.setOnClickListener(v -> {
             WgtgPlaylistActivity fragment = new WgtgPlaylistActivity();

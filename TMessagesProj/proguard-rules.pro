@@ -16,6 +16,9 @@
 -keep class org.telegram.messenger.voip.* { *; }
 -keep class org.telegram.SQLite.** { *; }
 -keep class org.telegram.tgnet.ConnectionsManager { *; }
+# Python plugins address TL requests and their fields by name.
+-keep class org.telegram.tgnet.TLRPC$* { *; }
+-keep class org.telegram.tgnet.tl.** { *; }
 -keep class org.telegram.tgnet.NativeByteBuffer { *; }
 -keep class org.telegram.tgnet.RequestTimeDelegate { *; }
 -keep class org.telegram.tgnet.RequestDelegate { *; }

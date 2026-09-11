@@ -1,6 +1,7 @@
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 apply plugin: 'com.android.library'
+apply plugin: 'com.chaquo.python'
 apply plugin: 'org.telegram.lottie-meta'
 apply plugin: 'idea'
 
@@ -126,7 +127,8 @@ android {
 
 
     defaultConfig {
-        minSdkVersion 21
+        minSdkVersion 24
+        ndk { abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64" }
         targetSdkVersion 36
 
         vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
@@ -252,6 +254,16 @@ def getProps(String propName) {
         return props[propName]
     } else {
         return "";
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        version = "3.11"
+        pip { install "PyYAML==6.0.2" }
+        pyc {
+            src = false
+        }
     }
 }
 apply plugin: 'com.google.gms.google-services'

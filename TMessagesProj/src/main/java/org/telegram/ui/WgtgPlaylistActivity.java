@@ -7,6 +7,9 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import org.telegram.messenger.*;
+import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.BaseFragment;
 import java.util.ArrayList;
 
 public class WgtgPlaylistActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
@@ -20,7 +23,11 @@ public class WgtgPlaylistActivity extends BaseFragment implements NotificationCe
     @Override public View createView(Context context) {
         actionBar.setTitle(LocaleController.getString(R.string.WgtgPlaylist));
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setActionBarMenuOnItemClick(id -> { if (id == -1) finishFragment(); });
+        actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
+            @Override public void onItemClick(int id) {
+                if (id == -1) finishFragment();
+            }
+        });
         sources.addAll(WgtgPlaylist.getSources(currentAccount));
         ScrollView scroll = new ScrollView(context);
         content = new LinearLayout(context); content.setOrientation(LinearLayout.VERTICAL);

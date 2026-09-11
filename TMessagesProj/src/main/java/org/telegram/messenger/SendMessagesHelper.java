@@ -4256,7 +4256,11 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         });
     }
 
-    public void sendMessage(SendMessageParams sendMessageParams) {
+    public void sendMessage(SendMessageParams originalParams) {
+        final SendMessageParams sendMessageParams = WgtgPluginsController.beforeSendMessage(currentAccount, originalParams);
+        if (sendMessageParams == null) {
+            return;
+        }
         final SendMessageChatArguments sendMessageChatArguments = sendMessageParams.sendMessageChatArguments != null ?
                 sendMessageParams.sendMessageChatArguments : SendMessageChatArguments.EMPTY;
         String message = sendMessageParams.message;

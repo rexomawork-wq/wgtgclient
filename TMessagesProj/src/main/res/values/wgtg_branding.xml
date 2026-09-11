@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="wgtg_launcher_background">#142B3B</color>
+    <color name="wgtg_night_background">#101321</color>
+    <string name="WgtgIcons">wgtg icons</string>
+    <string name="WgtgIconNight">night wgtg</string>
+    <string name="WgtgIconRgb">rgb wgtg</string>
+    <string name="WgtgNotificationIcon">Use wgtg notification icon</string>
+    <string name="WgtgNotificationIconInfo">Use a monochrome W for new message notifications. Turn off to use the default icon. Android controls the icon color.</string>
 </resources>

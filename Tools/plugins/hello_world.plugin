@@ -1,0 +1,24 @@
+from base_plugin import BasePlugin, HookResult, HookStrategy
+from ui.settings import Header, Input, Text
+
+__id__ = "hello_world"
+__name__ = "Hello World"
+__description__ = "Rewrites .hello Alice into a configurable greeting."
+__version__ = "1.0"
+__author__ = "wgtg"
+
+class HelloWorld(BasePlugin):
+    def on_plugin_load(self):
+        self.add_on_send_message_hook()
+
+    def create_settings(self):
+        return [Header(text="Hello World"),
+                Input(key="template", text="Greeting", default="Hello, {name}!"),
+                Text(text="Send .hello Alice to test")]
+
+    def on_send_message_hook(self, account, params):
+        text = getattr(params, "message", None)
+        if text is None or not str(text).startswith(".hello "):
+            return HookResult()
+        params.message = self.get_setting("template", "Hello, {name}!").format(name=str(text)[7:])
+        return HookResult(strategy=HookStrategy.MODIFY, params=params)

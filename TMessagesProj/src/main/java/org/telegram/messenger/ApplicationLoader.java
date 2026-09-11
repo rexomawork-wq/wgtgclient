@@ -193,6 +193,7 @@ public class ApplicationLoader extends Application {
         }
         applicationInited = true;
         NativeLoader.initNativeLibs(ApplicationLoader.applicationContext);
+        WgtgPluginsController.initializeAsync();
 
         try {
             LocaleController.getInstance(); //TODO improve

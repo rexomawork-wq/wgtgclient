@@ -26346,7 +26346,7 @@ public class ChatActivity extends BaseFragment implements
                     }
                 }
                 obj.deleted = true;
-                if (!sent && WgtgConfig.preserveDeleted(currentAccount)) {
+                if (!sent && org.telegram.messenger.WgtgConfig.preserveDeleted(currentAccount)) {
                     updated = true;
                     continue;
                 }
