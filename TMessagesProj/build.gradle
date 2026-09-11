@@ -260,7 +260,7 @@ def getProps(String propName) {
 chaquopy {
     defaultConfig {
         version = "3.11"
-        pip { install "PyYAML==6.0.2" }
+        pip { install "PyYAML==6.0.3" }
         pyc {
             src = false
         }
