@@ -1,0 +1,16 @@
+<resources>
+    <string name="WgtgViewerMissing">Нет подходящего приложения для просмотра</string>
+    <string name="WgtgNicknameInfo">Цвета имён отправителей в чатах видны только на этом устройстве. Chroma плавно меняет оттенок, RGB показывает движущуюся радугу. Имена с подписью бота сохраняют исходный стиль.</string>
+    <string name="WgtgOff">Выключено</string>
+    <string name="WgtgApplyColor">Применить static цвет</string>
+    <string name="WgtgPreserve">Сохранять удалённые сообщения</string>
+    <string name="WgtgArchive">Удалённые сообщения</string>
+    <string name="WgtgArchiveInfo">Для этого аккаунта: сохраняет входящие облачные сообщения из локальной базы при получении удаления и полностью скачанные медиа. Файлы открываются совместимым приложением. Секретные чаты и исчезающие медиа исключены. Ранее удалённое или не загруженное содержимое восстановить нельзя. Копии хранятся до очистки архива или выхода из аккаунта.</string>
+    <string name="WgtgEmpty">Сохранённых сообщений пока нет</string>
+    <string name="WgtgClear">Очистить локальный архив</string>
+    <string name="WgtgClearConfirm">Навсегда удалить все сохранённые сообщения и файлы этого аккаунта?</string>
+    <string name="WgtgNoMedia">Медиа не было скачано</string>
+    <string name="WgtgOpenMedia">Открыть сохранённое медиа</string>
+    <string name="WgtgLoadMore">Загрузить ещё</string>
+    <string name="WgtgArchiveError">Не удалось прочитать архив</string>
+</resources>

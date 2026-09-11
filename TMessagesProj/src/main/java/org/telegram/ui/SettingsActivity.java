@@ -622,6 +622,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         }
 
         items.add(UItem.asCustomShadow(topView, 200 - 12));
+        items.add(SettingCell.Factory.of(100, 0xff38d9b5, 0xff178b91, R.drawable.settings_chat, "wgtg settings"));
 
         accountNumbers.clear();
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
@@ -770,6 +771,12 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
     }
 
     private void onClick(UItem item, View view, int position, float x, float y) {
+        if (item.id == 100) {
+            WgtgSettingsActivity fragment = new WgtgSettingsActivity();
+            fragment.setCurrentAccount(currentAccount);
+            presentSettingFragment(fragment);
+            return;
+        }
         if (item.object instanceof TLRPC.TL_attachMenuBot) {
             TLRPC.TL_attachMenuBot attachMenuBot = (TLRPC.TL_attachMenuBot) item.object;
             if (attachMenuBot.inactive || attachMenuBot.side_menu_disclaimer_needed) {

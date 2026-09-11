@@ -22191,7 +22191,28 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             canvas.translate(nx, ny);
             oldAlpha = Theme.chat_namePaint.getAlpha();
             Theme.chat_namePaint.setAlpha((int) (oldAlpha * nameAlpha));
+            int wgtgColor = Theme.chat_namePaint.getColor();
+            android.graphics.Shader wgtgShader = Theme.chat_namePaint.getShader();
+            int wgtgMode = org.telegram.messenger.WgtgConfig.nicknameMode;
+            if (viaNameWidth == 0 && wgtgMode != 0) {
+                float hue = (android.os.SystemClock.uptimeMillis() % 6000L) * 360f / 6000f;
+                int nameAlphaValue = Theme.chat_namePaint.getAlpha();
+                if (wgtgMode == 3) {
+                    Theme.chat_namePaint.setShader(new android.graphics.LinearGradient(0, 0, Math.max(1, nameLayout.getWidth()), 0,
+                        new int[]{android.graphics.Color.HSVToColor(new float[]{hue, .8f, 1f}),
+                            android.graphics.Color.HSVToColor(new float[]{(hue + 120) % 360, .8f, 1f}),
+                            android.graphics.Color.HSVToColor(new float[]{(hue + 240) % 360, .8f, 1f})}, null, android.graphics.Shader.TileMode.CLAMP));
+                } else {
+                    Theme.chat_namePaint.setShader(null);
+                    Theme.chat_namePaint.setColor(wgtgMode == 1 ? org.telegram.messenger.WgtgConfig.nicknameColor :
+                        android.graphics.Color.HSVToColor(new float[]{hue, .8f, 1f}));
+                }
+                Theme.chat_namePaint.setAlpha(nameAlphaValue);
+                if (wgtgMode >= 2 && isShown() && hasWindowFocus()) postInvalidateDelayed(50);
+            }
             nameLayout.draw(canvas);
+            Theme.chat_namePaint.setShader(wgtgShader);
+            Theme.chat_namePaint.setColor(wgtgColor);
             Theme.chat_namePaint.setAlpha(oldAlpha);
             canvas.restore();
 

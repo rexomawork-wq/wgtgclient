@@ -849,6 +849,8 @@ public class MessagesStorage extends BaseController {
 
     public void cleanup(boolean isLogin) {
         storageQueue.postRunnable(() -> {
+            WgtgConfig.setPreserveDeleted(currentAccount, false);
+            try { WgtgArchive.clear(currentAccount); } catch (Exception e) { FileLog.e(e); }
             cleanupInternal(true);
             openDatabase(1);
             if (isLogin) {

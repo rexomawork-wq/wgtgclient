@@ -1,0 +1,16 @@
+<resources>
+    <string name="WgtgViewerMissing">No compatible viewer is available</string>
+    <string name="WgtgNicknameInfo">Sender name colors in chats are only visible on this device. Chroma cycles the hue; RGB animates a rainbow. Names with bot attribution keep their original style.</string>
+    <string name="WgtgOff">Off</string>
+    <string name="WgtgApplyColor">Apply static color</string>
+    <string name="WgtgPreserve">Keep deleted messages</string>
+    <string name="WgtgArchive">Deleted messages</string>
+    <string name="WgtgArchiveInfo">For this account: saves cached incoming cloud messages when a remote deletion arrives, plus fully downloaded media. Open files with a compatible viewer. Secret chats and disappearing media are excluded. Previously deleted or unavailable content cannot be recovered. Copies remain until you clear the archive or log out.</string>
+    <string name="WgtgEmpty">No saved messages</string>
+    <string name="WgtgClear">Clear local archive</string>
+    <string name="WgtgClearConfirm">Permanently delete all saved messages and files for this account?</string>
+    <string name="WgtgNoMedia">Media was not downloaded</string>
+    <string name="WgtgOpenMedia">Open saved media</string>
+    <string name="WgtgLoadMore">Load more</string>
+    <string name="WgtgArchiveError">Could not read the archive</string>
+</resources>
