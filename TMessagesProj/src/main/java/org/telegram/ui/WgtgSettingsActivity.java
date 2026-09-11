@@ -63,6 +63,25 @@ public class WgtgSettingsActivity extends BaseFragment {
         preserve.setOnCheckedChangeListener((button, checked) -> WgtgConfig.setPreserveDeleted(currentAccount, checked));
         content.addView(preserve);
         content.addView(text(context, LocaleController.getString(R.string.WgtgArchiveInfo)));
+        Switch ghost = new Switch(context);
+        ghost.setText(LocaleController.getString(R.string.WgtgGhost));
+        ghost.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        ghost.setChecked(WgtgConfig.ghostMode);
+        ghost.setOnCheckedChangeListener((button, checked) -> WgtgConfig.setGhostMode(checked));
+        content.addView(ghost);
+        Switch confirm = new Switch(context);
+        confirm.setText(LocaleController.getString(R.string.WgtgConfirmMedia));
+        confirm.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        confirm.setChecked(WgtgConfig.confirmMedia);
+        confirm.setOnCheckedChangeListener((button, checked) -> WgtgConfig.setConfirmMedia(checked));
+        content.addView(confirm);
+        TextView playlist = text(context, LocaleController.getString(R.string.WgtgPlaylist));
+        playlist.setOnClickListener(v -> {
+            WgtgPlaylistActivity fragment = new WgtgPlaylistActivity();
+            fragment.setCurrentAccount(currentAccount);
+            presentFragment(fragment);
+        });
+        content.addView(playlist);
         TextView archive = text(context, LocaleController.getString(R.string.WgtgArchive));
         archive.setOnClickListener(v -> {
             WgtgDeletedMessagesActivity fragment = new WgtgDeletedMessagesActivity();

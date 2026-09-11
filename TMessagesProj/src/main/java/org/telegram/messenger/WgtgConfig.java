@@ -6,6 +6,8 @@ public final class WgtgConfig {
     private static final SharedPreferences prefs = ApplicationLoader.applicationContext.getSharedPreferences("wgtg", 0);
     public static volatile int nicknameMode = prefs.getInt("nicknameMode", 0);
     public static volatile int nicknameColor = prefs.getInt("nicknameColor", 0xff38d9b5);
+    public static volatile boolean ghostMode = prefs.getBoolean("ghostMode", false);
+    public static volatile boolean confirmMedia = prefs.getBoolean("confirmMedia", false);
 
     public static void setNickname(int mode, int color) {
         nicknameMode = mode;
@@ -19,5 +21,15 @@ public final class WgtgConfig {
 
     public static void setPreserveDeleted(int account, boolean enabled) {
         prefs.edit().putBoolean("preserveDeleted" + account, enabled).apply();
+    }
+
+    public static void setGhostMode(boolean enabled) {
+        ghostMode = enabled;
+        prefs.edit().putBoolean("ghostMode", enabled).apply();
+    }
+
+    public static void setConfirmMedia(boolean enabled) {
+        confirmMedia = enabled;
+        prefs.edit().putBoolean("confirmMedia", enabled).apply();
     }
 }

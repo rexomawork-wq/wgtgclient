@@ -26346,6 +26346,10 @@ public class ChatActivity extends BaseFragment implements
                     }
                 }
                 obj.deleted = true;
+                if (!sent && WgtgConfig.preserveDeleted(currentAccount)) {
+                    updated = true;
+                    continue;
+                }
                 if (obj.scheduled && sent) {
                     obj.scheduledSent = true;
                 }

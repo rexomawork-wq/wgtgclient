@@ -1,5 +1,13 @@
 <resources>
     <string name="WgtgViewerMissing">No compatible viewer is available</string>
+    <string name="WgtgGhost">Ghost mode: hide online and typing status</string>
+    <string name="WgtgConfirmMedia">Confirm before sending media</string>
+    <string name="WgtgPlaylist">Playlist</string>
+    <string name="WgtgPlaylistInfo">Add chat IDs as music sources. IDs are stored only on this device; the player combines downloaded music from all sources.</string>
+    <string name="WgtgChatIdHint">Chat ID, for example -1001234567890</string>
+    <string name="WgtgAddChat">Add chat</string>
+    <string name="WgtgPlay">Play combined playlist</string>
+    <string name="WgtgNoMusic">No music found in selected chats</string>
     <string name="WgtgNicknameInfo">Sender name colors in chats are only visible on this device. Chroma cycles the hue; RGB animates a rainbow. Names with bot attribution keep their original style.</string>
     <string name="WgtgOff">Off</string>
     <string name="WgtgApplyColor">Apply static color</string>

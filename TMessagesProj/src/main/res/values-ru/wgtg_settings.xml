@@ -1,5 +1,13 @@
 <resources>
     <string name="WgtgViewerMissing">Нет подходящего приложения для просмотра</string>
+    <string name="WgtgGhost">Режим призрака: скрывать онлайн и статус набора</string>
+    <string name="WgtgConfirmMedia">Подтверждать отправку медиа</string>
+    <string name="WgtgPlaylist">Плейлист</string>
+    <string name="WgtgPlaylistInfo">Добавь ID чатов как источники музыки. ID хранятся только на этом устройстве; плеер объединяет музыку из всех источников.</string>
+    <string name="WgtgChatIdHint">ID чата, например -1001234567890</string>
+    <string name="WgtgAddChat">Добавить чат</string>
+    <string name="WgtgPlay">Запустить общий плейлист</string>
+    <string name="WgtgNoMusic">В выбранных чатах музыка не найдена</string>
     <string name="WgtgNicknameInfo">Цвета имён отправителей в чатах видны только на этом устройстве. Chroma плавно меняет оттенок, RGB показывает движущуюся радугу. Имена с подписью бота сохраняют исходный стиль.</string>
     <string name="WgtgOff">Выключено</string>
     <string name="WgtgApplyColor">Применить static цвет</string>
