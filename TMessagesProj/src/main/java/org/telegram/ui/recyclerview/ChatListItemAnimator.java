@@ -18,11 +18,14 @@ import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.BuildVars;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.Utilities;
+import org.telegram.messenger.WgtgConfig;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.BotHelpCell;
 import org.telegram.ui.Cells.ChatActionCell;
@@ -325,8 +328,23 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
     @Override
     public boolean animateAdd(RecyclerView.ViewHolder holder) {
         resetAnimation(holder);
+        if (!WgtgConfig.smoothMessages || !SharedConfig.animationsEnabled() || AndroidUtilities.getAnimatorDurationScale() == 0) {
+            holder.itemView.setAlpha(1);
+            holder.itemView.setScaleX(1);
+            holder.itemView.setScaleY(1);
+            holder.itemView.setTranslationY(0);
+            if (holder.itemView instanceof ChatMessageCell) {
+                ChatMessageCell cell = (ChatMessageCell) holder.itemView;
+                cell.getTransitionParams().messageEntering = false;
+                if (activity != null) {
+                    activity.animatingMessageObjects.remove(cell.getMessageObject());
+                }
+            }
+            dispatchAddFinished(holder);
+            return false;
+        }
         holder.itemView.setAlpha(0);
-        if (!shouldAnimateEnterFromBottom) {
+        if (!shouldAnimateEnterFromBottom && WgtgConfig.messageTransition == WgtgConfig.TRANSITION_DEFAULT) {
             holder.itemView.setScaleX(0.9f);
             holder.itemView.setScaleY(0.9f);
         } else {
@@ -339,6 +357,9 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
     }
 
     public void animateAddImpl(final RecyclerView.ViewHolder holder, int addedItemsHeight) {
+        if (animateWgtgAdd(holder)) {
+            return;
+        }
         final View view = holder.itemView;
         final ViewPropertyAnimator animation = view.animate();
         mAddAnimations.add(holder);
@@ -1221,6 +1242,7 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
             }
         } else if (view instanceof ChatMessageCell) {
             ((ChatMessageCell) view).getTransitionParams().resetAnimation();
+            ((ChatMessageCell) view).getTransitionParams().messageEntering = false;
             ((ChatMessageCell) view).setAnimationOffsetX(0f);
         } else if (view instanceof ChatActionCell) {
             ((ChatActionCell) view).getTransitionParams().resetAnimation();
@@ -1393,6 +1415,9 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
 
     @Override
     public void animateAddImpl(RecyclerView.ViewHolder holder) {
+        if (animateWgtgAdd(holder)) {
+            return;
+        }
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("animate add impl");
         }
@@ -1539,6 +1564,57 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
         });
         animators.put(holder, animatorSet);
         animatorSet.start();
+    }
+
+    private boolean animateWgtgAdd(RecyclerView.ViewHolder holder) {
+        int style = WgtgConfig.messageTransition;
+        if (style == WgtgConfig.TRANSITION_DEFAULT || !(holder.itemView instanceof ChatMessageCell) || holder == greetingsSticker) {
+            return false;
+        }
+        ChatMessageCell cell = (ChatMessageCell) holder.itemView;
+        if (style == WgtgConfig.TRANSITION_SCALE && (cell.getCurrentMessagesGroup() != null
+                || SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_LOW
+                || !LiteMode.isEnabled(LiteMode.FLAG_CHAT_SCALE))) {
+            style = WgtgConfig.TRANSITION_FADE;
+        }
+        if (activity != null) {
+            // The selected entrance replaces the composer-to-bubble morph.
+            activity.animatingMessageObjects.remove(cell.getMessageObject());
+        }
+        cell.getTransitionParams().messageEntering = true;
+        cell.setAlpha(0f);
+        cell.setTranslationY(style == WgtgConfig.TRANSITION_SLIDE ? AndroidUtilities.dp(24) : 0f);
+        cell.setScaleX(style == WgtgConfig.TRANSITION_SCALE ? 0.94f : 1f);
+        cell.setScaleY(cell.getScaleX());
+        mAddAnimations.add(holder);
+        final ViewPropertyAnimator animation = cell.animate();
+        animation.alpha(1f).translationY(0f).scaleX(1f).scaleY(1f)
+                .setStartDelay(0).setDuration(style == WgtgConfig.TRANSITION_FADE ? 180 : 240)
+                .setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationStart(Animator animator) {
+                        dispatchAddStarting(holder);
+                    }
+
+                    @Override
+                    public void onAnimationCancel(Animator animator) {
+                        restoreTransitionParams(cell);
+                        cell.getTransitionParams().messageEntering = false;
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animator animator) {
+                        animation.setListener(null);
+                        restoreTransitionParams(cell);
+                        cell.getTransitionParams().messageEntering = false;
+                        if (mAddAnimations.remove(holder)) {
+                            dispatchAddFinished(holder);
+                            dispatchFinishedWhenDone();
+                        }
+                    }
+                }).start();
+        return true;
     }
 
     protected void animateRemoveImpl(final RecyclerView.ViewHolder holder, boolean thanos) {
@@ -1734,4 +1810,3 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
         this.getThanosEffectContainer = getThanosEffectContainer;
     }
 }
-

@@ -160,6 +160,8 @@ public class NotificationsController extends BaseController implements Notificat
     private AlarmManager alarmManager;
 
     private int notificationId;
+    private String notificationTag;
+    private String dialogNotificationTag;
     private String notificationGroup;
 
     private SpoilerEffect mediaSpoilerEffect = new SpoilerEffect();
@@ -202,6 +204,9 @@ public class NotificationsController extends BaseController implements Notificat
     public NotificationsController(int instance) {
         super(instance);
         notificationId = currentAccount + 1;
+        // Preserve existing summary identities; new slots must not collide with service IDs.
+        notificationTag = currentAccount < 4 ? null : "account_summary_" + currentAccount;
+        dialogNotificationTag = currentAccount < 4 ? null : "account_dialogs_" + currentAccount;
         notificationGroup = "messages" + (currentAccount == 0 ? "" : currentAccount);
         SharedPreferences preferences = getAccountInstance().getNotificationsSettings();
         inChatSoundEnabled = preferences.getBoolean("EnableInChatSound", true);
@@ -3268,10 +3273,10 @@ public class NotificationsController extends BaseController implements Notificat
 
     public void hideNotifications() {
         notificationsQueue.postRunnable(() -> {
-            notificationManager.cancel(notificationId);
+            notificationManager.cancel(notificationTag, notificationId);
             lastWearNotifiedMessageId.clear();
             for (int a = 0; a < wearNotificationsIds.size(); a++) {
-                notificationManager.cancel(wearNotificationsIds.valueAt(a));
+                notificationManager.cancel(dialogNotificationTag, wearNotificationsIds.valueAt(a));
             }
             wearNotificationsIds.clear();
         });
@@ -3280,7 +3285,7 @@ public class NotificationsController extends BaseController implements Notificat
     private void dismissNotification() {
         FileLog.d("NotificationsController dismissNotification");
         try {
-            notificationManager.cancel(notificationId);
+            notificationManager.cancel(notificationTag, notificationId);
             pushMessages.clear();
             pushMessagesDict.clear();
             lastWearNotifiedMessageId.clear();
@@ -3289,7 +3294,7 @@ public class NotificationsController extends BaseController implements Notificat
                 if (openedInBubbleDialogs.contains(did)) {
                     continue;
                 }
-                notificationManager.cancel(wearNotificationsIds.valueAt(a));
+                notificationManager.cancel(dialogNotificationTag, wearNotificationsIds.valueAt(a));
             }
             wearNotificationsIds.clear();
             AndroidUtilities.runOnUIThread(() -> NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.pushMessagesUpdated));
@@ -3391,7 +3396,7 @@ public class NotificationsController extends BaseController implements Notificat
         notificationsQueue.postRunnable(() -> {
             int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
             if (hour >= 11 && hour <= 22) {
-                notificationManager.cancel(notificationId);
+                notificationManager.cancel(notificationTag, notificationId);
                 showOrUpdateNotification(true);
             } else {
                 scheduleNotificationRepeat();
@@ -4816,7 +4821,7 @@ public class NotificationsController extends BaseController implements Notificat
             editor.commit();
             sound = Settings.System.DEFAULT_RINGTONE_URI;
             notificationBuilder.setChannelId(validateChannelId(dialogId, topicId, chatName, vibrationPattern, ledColor, sound, importance, isDefault, isInApp, isSilent, chatType));
-            notificationManager.notify(notificationId, notificationBuilder.build());
+            notificationManager.notify(notificationTag, notificationId, notificationBuilder.build());
         }
     }
 
@@ -4828,7 +4833,7 @@ public class NotificationsController extends BaseController implements Notificat
         }
         Notification mainNotification = notificationBuilder.build();
         if (Build.VERSION.SDK_INT <= 19) {
-            notificationManager.notify(notificationId, mainNotification);
+            notificationManager.notify(notificationTag, notificationId, mainNotification);
             if (BuildVars.LOGS_ENABLED) {
                 FileLog.d("show summary notification by SDK check");
             }
@@ -4894,7 +4899,7 @@ public class NotificationsController extends BaseController implements Notificat
                     FileLog.w("show dialog notification with id " + id + " " + dialogId +  " user=" + user + " chat=" + chat);
                 }
                 try {
-                    notificationManager.notify(id, notification.build());
+                    notificationManager.notify(dialogNotificationTag, id, notification.build());
                 } catch (SecurityException e) {
                     FileLog.e(e);
                     resetNotificationSound(notification, dialogId, lastTopicId, chatName, vibrationPattern, ledColor, sound, importance, isDefault, isInApp, isSilent, chatType);
@@ -5702,7 +5707,7 @@ public class NotificationsController extends BaseController implements Notificat
                 FileLog.d("show summary with id " + notificationId);
             }
             try {
-                notificationManager.notify(notificationId, mainNotification);
+                notificationManager.notify(notificationTag, notificationId, mainNotification);
             } catch (SecurityException e) {
                 FileLog.e(e);
                 resetNotificationSound(notificationBuilder, lastDialogId, lastTopicId, chatName, vibrationPattern, ledColor, sound, importance, isDefault, isInApp, isSilent, chatType);
@@ -5712,7 +5717,7 @@ public class NotificationsController extends BaseController implements Notificat
                 if (BuildVars.LOGS_ENABLED) {
                     FileLog.d("cancel summary with id " + notificationId);
                 }
-                notificationManager.cancel(notificationId);
+                notificationManager.cancel(notificationTag, notificationId);
             }
         }
 
@@ -5725,7 +5730,7 @@ public class NotificationsController extends BaseController implements Notificat
             if (BuildVars.LOGS_ENABLED) {
                 FileLog.d("cancel notification id " + id);
             }
-            notificationManager.cancel(id);
+            notificationManager.cancel(dialogNotificationTag, id);
         }
 
         ArrayList<String> ids = new ArrayList<>(holders.size());

@@ -24,8 +24,9 @@ import java.util.Arrays;
 public class UserConfig extends BaseController {
 
     public static int selectedAccount;
-    public final static int MAX_ACCOUNT_DEFAULT_COUNT = 3;
-    public final static int MAX_ACCOUNT_COUNT = 4;
+    // Keep in sync with tgnet/Defines.h; singleton arrays use this storage capacity.
+    public final static int MAX_ACCOUNT_COUNT = 100;
+    public final static int MAX_ACCOUNT_DEFAULT_COUNT = MAX_ACCOUNT_COUNT;
 
     private final Object sync = new Object();
     private volatile boolean configLoaded;
@@ -122,7 +123,14 @@ public class UserConfig extends BaseController {
     }
 
     public static int getMaxAccountCount() {
-        return hasPremiumOnAccounts() ? 5 : 3;
+        return MAX_ACCOUNT_COUNT;
+    }
+
+    public static int getFreeAccount() {
+        for (int a = 0; a < MAX_ACCOUNT_COUNT; a++) {
+            if (!getInstance(a).isClientActivated()) return a;
+        }
+        return -1;
     }
 
     public int getNewMessageId() {

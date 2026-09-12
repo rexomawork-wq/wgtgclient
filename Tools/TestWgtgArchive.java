@@ -19,6 +19,22 @@ class TestWgtgArchive {
     public static void main(String[] args) throws Exception {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         Path root = Path.of("TMessagesProj/src/main/java/org/telegram");
+        String chat = Files.readString(root.resolve("ui/ChatActivity.java"));
+        int deletionStart = chat.indexOf("private void processDeletedMessages(");
+        int deletionEnd = chat.indexOf("messagesDict[loadIndex].remove(mid)", deletionStart);
+        if (deletionStart < 0 || deletionEnd < 0 || chat.substring(deletionStart, deletionEnd).contains("WgtgConfig.preserveDeleted")) {
+            throw new AssertionError("Local deletion must reach list/dictionary cleanup regardless of the capture setting");
+        }
+        if (!chat.contains("WgtgArchive.excludingDeleted(currentAccount, channelId == 0 ? 0 : -channelId, markAsDeletedMessages)")) {
+            throw new AssertionError("Remote preserved messages must be filtered before list cleanup");
+        }
+        int eventStart = chat.indexOf("boolean scheduled = (Boolean) args[2];", chat.indexOf("} else if (id == NotificationCenter.messagesDeleted)"));
+        int eventEnd = chat.indexOf("boolean update =", eventStart);
+        String deletionEvent = chat.substring(eventStart, eventEnd).replace("return;", "return null;");
+        String storage = Files.readString(root.resolve("messenger/MessagesStorage.java"));
+        int localStart = storage.indexOf("public ArrayList<Long> markMessagesAsDeletedLocally(");
+        int localEnd = storage.indexOf("public void deletePreservedMessage(", localStart);
+        String localDeletion = storage.substring(localStart, localEnd);
         List<String> paths = List.of("messenger/WgtgArchive.java", "messenger/WgtgConfig.java", "messenger/MessagesController.java",
             "messenger/MessagesStorage.java", "ui/ChatActivity.java", "ui/Cells/ChatMessageCell.java");
         for (String locale : List.of("values", "values-ru")) {
@@ -144,9 +160,26 @@ class TestWgtgArchive {
                 class MessagesStorage {
                     static final MessagesStorage instance = new MessagesStorage();
                     static long dialog = 7; static int ttl; static TLRPC.Message message;
+                    int currentAccount; static boolean failDeletion;
                     static MessagesStorage getInstance(int account) { return instance; }
                     MessagesStorage getDatabase() { return this; }
                     SQLiteCursor queryFinalized(String sql, int id) { return new SQLiteCursor(dialog,message,ttl); }
+                    ArrayList<Long> markMessagesAsDeletedInternal(long d, ArrayList<Integer> ids, boolean files, int mode, int topic) {
+                        if (failDeletion) return null;
+                        message = null;
+                        return new ArrayList<>(List.of(d));
+                    }
+                    __LOCAL_DELETION__
+                }
+                class ChatDeletion {
+                    int currentAccount, chatMode;
+                    static final int MODE_SCHEDULED = 1;
+                    final ListView chatListView = new ListView();
+                    static class ListView { int redraws; void invalidateViews() { redraws++; } }
+                    ArrayList<Integer> removed(Object... args) {
+                        __DELETION_EVENT__
+                        return markAsDeletedMessages;
+                    }
                 }
                 class UserConfig { static UserConfig getInstance(int a) { return new UserConfig(); } long getClientUserId() { return 1; } }
                 class DialogObject { static boolean isEncryptedDialog(long d) { return d == (1L << 32); } }
@@ -204,6 +237,27 @@ class TestWgtgArchive {
                         check(WgtgArchive.isDeleted(0,7,10) && WgtgArchive.isDeleted(0,0,10), "channel removal preserves colliding private ID");
                         var ids = new ArrayList<>(List.of(10,11,12));
                         check(WgtgArchive.excludingDeleted(0,0,ids).equals(List.of(12)) && ids.size()==3, "mixed batch filtering without mutation");
+                        ChatDeletion chat = new ChatDeletion();
+                        check(chat.removed(ids,0L,false).equals(List.of(12)), "remote chat event keeps preserved rows");
+                        check(chat.chatListView.redraws==1, "remote chat event immediately invalidates deleted styling");
+                        check(chat.removed(ids,0L,false,false,false,0,null,true).equals(ids), "local chat event bypasses concurrent capture markers");
+                        chat.chatMode = ChatDeletion.MODE_SCHEDULED;
+                        check(chat.removed(ids,0L,true).equals(ids), "scheduled IDs bypass regular message markers");
+                        chat.chatMode = 0;
+                        MessagesStorage.dialog = 7; MessagesStorage.message = new TLRPC.Message();
+                        var racingIds = new ArrayList<>(List.of(30));
+                        check(chat.removed(racingIds,0L,false,false,false,0,null,true).equals(racingIds), "local row removal before queued capture");
+                        capture(30);
+                        check(WgtgArchive.isDeleted(0,7,30), "queued capture commits before local storage deletion");
+                        MessagesStorage.failDeletion = true;
+                        MessagesStorage.instance.markMessagesAsDeletedLocally(7,racingIds,true,0);
+                        check(WgtgArchive.isDeleted(0,7,30), "failed database deletion keeps preserved copy");
+                        MessagesStorage.failDeletion = false;
+                        MessagesStorage.instance.markMessagesAsDeletedLocally(7,racingIds,true,0);
+                        check(!WgtgArchive.isDeleted(0,7,30) && !WgtgArchive.isDeleted(0,0,30), "local storage deletion clears raced capture and global alias");
+                        capture(30);
+                        check(!WgtgArchive.isDeleted(0,7,30), "late remote update cannot recapture removed row");
+                        check(WgtgArchive.load(0,Long.MAX_VALUE).size()==2, "raced archive copy removed");
                         WgtgConfig.setPreserveDeleted(0,false);
                         check(WgtgArchive.isDeleted(0,7,10), "disabling capture preserves existing markers");
                         WgtgArchive.forget(0,7,10);
@@ -212,10 +266,10 @@ class TestWgtgArchive {
                         check(WgtgArchive.load(0,Long.MAX_VALUE).size()==1, "local removal removes archive entry");
                         WgtgArchive.resetDeleted(0);
                         check(!WgtgArchive.isDeleted(0,7,11), "logout resets markers");
-                        System.out.println("Archive behavior: capture, TTL exclusions, isolation, reload, duplicates, mixed deletion and cleanup passed");
+                        System.out.println("Archive behavior: capture, TTL exclusions, isolation, reload, duplicates, mixed deletion, chat redraw, local capture race and cleanup passed");
                     }
                 }
-                """));
+                """.replace("__LOCAL_DELETION__", localDeletion).replace("__DELETION_EVENT__", deletionEvent)));
             Path classes = Files.createTempDirectory("wgtg-archive-test-");
             if (!compiler.getTask(null, manager, null, List.of("-d", classes.toString(), "-proc:none"), null, sources).call()) {
                 throw new AssertionError("Archive compilation failed");

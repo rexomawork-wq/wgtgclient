@@ -11,6 +11,8 @@ hooks = []
 send_hooks = []
 app_event = None
 dependency_paths = {}
+source_paths = {}
+_settings_token = 0
 _account = ContextVar("plugin_account", default=None)
 
 @contextmanager
@@ -62,7 +64,7 @@ def _dependency_conflicts(plugin_id, path):
         if name.endswith((".dist-info", ".egg-info")) or name == "__pycache__": continue
         module = name[:-3] if name.endswith(".py") else name
         if not module.isidentifier(): continue
-        for owner, active in dependency_paths.items():
+        for owner, active in list(dependency_paths.items()) + list(source_paths.items()):
             if owner != plugin_id and (os.path.exists(os.path.join(active, module)) or os.path.exists(os.path.join(active, module + ".py"))):
                 raise ValueError(f"Dependency {module} conflicts with active plugin {owner}; disable it first")
         spec = importlib.util.find_spec(module)
@@ -249,13 +251,13 @@ def _load(plugin_id, main, meta):
         elyx.register_environment(module_name, environment)
         spec = importlib.util.spec_from_file_location(module_name, main, submodule_search_locations=[os.path.dirname(main)])
         module = importlib.util.module_from_spec(spec); sys.modules[module_name] = module
-        plugin_dir = os.path.dirname(main); sys.path.insert(0, plugin_dir)
-        try:
-            with elyx.environment_scope(environment):
-                load_resources(_plugin_folder(plugin_id, main), environment)
-                spec.loader.exec_module(module)
-        finally:
-            if sys.path[0] == plugin_dir: sys.path.pop(0)
+        plugin_dir = os.path.realpath(os.path.dirname(main))
+        source_paths[plugin_id] = plugin_dir
+        sys.path.insert(0, plugin_dir)
+        importlib.invalidate_caches()
+        with elyx.environment_scope(environment):
+            load_resources(_plugin_folder(plugin_id, main), environment)
+            spec.loader.exec_module(module)
         with open(main, encoding="utf-8") as source:
             declared = {node.name for node in ast.parse(source.read()).body if isinstance(node, ast.ClassDef)}
         classes = [value for name, value in vars(module).items() if name in declared and inspect.isclass(value) and value is not BasePlugin and issubclass(value, BasePlugin)]
@@ -295,9 +297,11 @@ def _unload(plugin_id):
     elyx.unregister_environment(module_name)
     for name in list(sys.modules):
         if name == module_name or name.startswith(module_name + "."): sys.modules.pop(name, None)
-    path = dependency_paths.pop(plugin_id, None)
-    if path:
-        sys.path[:] = [entry for entry in sys.path if entry != path]
+    for path in (source_paths.pop(plugin_id, None), dependency_paths.pop(plugin_id, None)):
+        if not path: continue
+        if path not in source_paths.values():
+            sys.path[:] = [entry for entry in sys.path if entry != path]
+        if path == os.path.realpath(root): continue  # Legacy loose plugins share this directory.
         for name, module in list(sys.modules.items()):
             namespace = getattr(module, "__dict__", {})
             locations = list(namespace.get("__path__", ()) or ())
@@ -524,20 +528,60 @@ def shutdown():
     on_app_event(AppEvent.STOP)
     for plugin_id in list(loaded): _unload(plugin_id)
 
-def settings_rows(plugin_id):
-    from dataclasses import asdict
-    instance = loaded.get(plugin_id, {}).get("instance")
-    with elyx.environment_scope(loaded.get(plugin_id, {}).get("environment")):
-        rows = instance.create_settings() if instance and hasattr(instance, "create_settings") else []
+def settings_rows(plugin_id, parent=None):
+    from dataclasses import fields
+    global _settings_token
+    item = loaded.get(plugin_id, {})
+    instance = item.get("instance")
+    with elyx.environment_scope(item.get("environment")):
+        if parent is None:
+            rows = instance.create_settings() if instance else []
+        else:
+            rows = item.get("settings_rows", {})[parent].create_sub_fragment()
     result = []
+    registered = {}
     for row in rows:
         kind = type(row).__name__
-        if kind not in ("Header", "Input", "Switch", "Text"):
+        if kind not in ("Header", "Input", "Switch", "Text", "Selector", "Divider", "EditText"):
             raise NotImplementedError("Unsupported settings row: " + kind)
-        data = asdict(row); data["type"] = kind
+        data = {f.name: getattr(row, f.name) for f in fields(row)
+                if f.name not in ("on_change", "on_click", "on_long_click", "create_sub_fragment")}
+        if kind == "EditText" and row.mask:
+            raise NotImplementedError("EditText mask is not supported by this host")
+        _settings_token += 1
+        data.update(type=kind, token=str(_settings_token))
+        for callback in ("on_click", "on_long_click", "create_sub_fragment"):
+            data[callback] = callable(getattr(row, callback, None))
         if "key" in data: data["value"] = get_setting(plugin_id, data["key"], data.get("default"))
         result.append(data)
-    return json.dumps(result)
+        registered[data["token"]] = row
+    encoded = json.dumps(result)
+    item["settings_rows"] = registered
+    return encoded
+
+def settings_action(plugin_id, token, action, value="null", view=None):
+    item = loaded.get(plugin_id, {})
+    if not item.get("instance") or token not in item.get("settings_rows", {}):
+        raise ValueError("Settings page expired; reopen the plugin settings")
+    row = item["settings_rows"][token]
+    with elyx.environment_scope(item.get("environment")):
+        if action == "change":
+            value = json.loads(value)
+            kind = type(row).__name__
+            if kind == "Switch": valid = type(value) is bool
+            elif kind == "Selector": valid = type(value) is int and 0 <= value < len(row.items)
+            elif kind in ("Input", "EditText"):
+                valid = isinstance(value, str) and (not getattr(row, "max_length", 0) or len(value) <= row.max_length)
+            else: valid = False
+            if not valid: raise ValueError("Invalid settings value")
+            set_setting(plugin_id, row.key, value)
+            if row.on_change: row.on_change(value)
+        elif action in ("on_click", "on_long_click"):
+            callback = getattr(row, action, None)
+            if callback: return bool(callback(view))
+        else:
+            raise ValueError("Unknown settings action")
+    return False
 
 def set_setting_json(plugin_id, key, value): set_setting(plugin_id, key, json.loads(value))
 def get_settings(plugin_id): return _state()["settings"].get(plugin_id, {})
@@ -558,6 +602,6 @@ def _serialized(function):
     return call
 for _name in ("initialize", "inspect_plugin", "uninstall", "list_plugins",
               "before_request", "after_request", "before_update", "before_updates", "on_app_event", "shutdown",
-              "before_send_message", "settings_rows", "set_setting_json",
+              "before_send_message", "settings_rows", "settings_action", "set_setting_json",
               "get_settings", "get_setting", "set_setting", "replace_settings", "add_hook", "add_send_hook"):
     globals()[_name] = _serialized(globals()[_name])

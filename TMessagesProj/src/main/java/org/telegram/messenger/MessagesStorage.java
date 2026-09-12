@@ -14517,6 +14517,24 @@ public class MessagesStorage extends BaseController {
         AndroidUtilities.runOnUIThread(() -> getNotificationCenter().postNotificationName(NotificationCenter.quickRepliesUpdated));
     }
 
+    // Called on the storage queue so a pending remote capture cannot outlive local cleanup.
+    public ArrayList<Long> markMessagesAsDeletedLocally(long dialogId, ArrayList<Integer> ids, boolean deleteFiles, int topicId) {
+        if (ids.isEmpty()) return null;
+        ArrayList<Long> dialogs = markMessagesAsDeletedInternal(dialogId, ids, deleteFiles, 0, topicId);
+        if (dialogs != null) {
+            for (int id : ids) {
+                if (WgtgArchive.isDeleted(currentAccount, dialogId, id)) {
+                    try {
+                        WgtgArchive.forget(currentAccount, dialogId, id);
+                    } catch (Exception e) {
+                        FileLog.e(e);
+                    }
+                }
+            }
+        }
+        return dialogs;
+    }
+
     public void deletePreservedMessage(long dialogId, int messageId, long channelId) {
         storageQueue.postRunnable(() -> {
             if (!WgtgArchive.isDeleted(currentAccount, dialogId, messageId)) return;

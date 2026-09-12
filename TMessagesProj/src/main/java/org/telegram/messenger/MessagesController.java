@@ -9373,10 +9373,16 @@ public class MessagesController extends BaseController implements NotificationCe
                 } else {
                     markDialogMessageAsDeleted(dialogId, messages);
                 }
-                getMessagesStorage().markMessagesAsDeleted(dialogId, messages, true, forAll, 0, topicId);
-                getMessagesStorage().updateDialogsWithDeletedMessages(dialogId, channelId, messages, null);
+                ArrayList<Integer> localMessages = new ArrayList<>(messages);
+                getMessagesStorage().getStorageQueue().postRunnable(() -> {
+                    ArrayList<Long> dialogs = getMessagesStorage().markMessagesAsDeletedLocally(dialogId, localMessages, forAll, topicId);
+                    if (dialogs != null) {
+                        getMessagesStorage().updateDialogsWithDeletedMessages(dialogId, channelId, localMessages, dialogs);
+                    }
+                });
             }
-            getNotificationCenter().postNotificationName(NotificationCenter.messagesDeleted, messages, channelId, scheduled, false, movedToScheduled, movedToScheduledMessageId);
+            // Local intent wins even if a remote capture is concurrently committing its marker.
+            getNotificationCenter().postNotificationName(NotificationCenter.messagesDeleted, messages, channelId, scheduled, false, movedToScheduled, movedToScheduledMessageId, null, true);
         } else {
             if (taskRequest instanceof TLRPC.TL_channels_deleteMessages) {
                 channelId = ((TLRPC.TL_channels_deleteMessages) taskRequest).channel.channel_id;
@@ -23138,10 +23144,10 @@ public class MessagesController extends BaseController implements NotificationCe
                 processNewDifferenceParams(-1, res.pts, -1, res.pts_count);
                 getMessagesStorage().getStorageQueue().postRunnable(() -> {
                     ArrayList<Integer> dbMessages = getMessagesStorage().getCachedMessagesInRange(dialogId, minDate, maxDate);
-                    getMessagesStorage().markMessagesAsDeleted(dialogId, dbMessages, false, true, 0, 0);
+                    getMessagesStorage().markMessagesAsDeletedLocally(dialogId, dbMessages, true, 0);
                     getMessagesStorage().updateDialogsWithDeletedMessages(dialogId, 0, dbMessages, null);
                     AndroidUtilities.runOnUIThread(() -> {
-                        getNotificationCenter().postNotificationName(NotificationCenter.messagesDeleted, dbMessages, channelId, false);
+                        getNotificationCenter().postNotificationName(NotificationCenter.messagesDeleted, dbMessages, channelId, false, false, false, 0, null, true);
                         if (res.offset > 0) {
                             deleteMessagesRange(dialogId, channelId, minDate, maxDate, forAll, callback);
                         } else {

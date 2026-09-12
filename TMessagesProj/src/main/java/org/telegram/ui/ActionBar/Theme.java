@@ -5610,6 +5610,80 @@ public class Theme {
         return themesDict.get(key);
     }
 
+    public static String getWgtgThemeKey(int palette) {
+        return new String[]{"WGTG Black Orange", "WGTG Black Pink", "WGTG Black Mint",
+                "WGTG Black Violet", "WGTG Midnight Blue", "WGTG Warm Linen"}[palette] + ".attheme";
+    }
+
+    public static ThemeInfo applyWgtgTheme(int palette) {
+        if (palette < 0 || palette >= 6) {
+            return null;
+        }
+        File file = new File(ApplicationLoader.applicationContext.getCacheDir(), "wgtg-palette.attheme");
+        try {
+            boolean light = palette == 5;
+            // Accent, main surface, incoming bubble, outgoing bubble. Night and Day supply
+            // the complete dark/light text, icon and control colors before palette overrides.
+            int[][] palettes = {
+                    {0xffff9800, 0xff000000, 0xff181818, 0xff543200},
+                    {0xffff69b4, 0xff000000, 0xff21181d, 0xff542039},
+                    {0xff64dbb5, 0xff000000, 0xff13211d, 0xff164a3b},
+                    {0xffb79aff, 0xff000000, 0xff1c1828, 0xff3c2c63},
+                    {0xff7cbbff, 0xff0b1426, 0xff172840, 0xff234b76},
+                    {0xffa04e32, 0xfff7f0e6, 0xfffffcf6, 0xff8e4934}
+            };
+            int[] colorset = palettes[palette];
+            ThemeAccent accent = new ThemeAccent();
+            accent.parentTheme = getTheme(light ? "Day" : "Night");
+            accent.accentColor = colorset[0];
+            SparseIntArray base = getThemeFileValues(null, light ? "day.attheme" : "night.attheme", null);
+            SparseIntArray colors = base.clone();
+            accent.fillAccentColors(base, colors);
+            for (int key : new int[]{key_windowBackgroundWhite, key_windowBackgroundGray,
+                    key_actionBarDefault, key_actionBarDefaultArchived, key_actionBarDefaultSubmenuBackground,
+                    key_actionBarActionModeDefault, key_dialogBackground, key_chat_wallpaper,
+                    key_chat_messagePanelBackground, key_chat_emojiPanelBackground, key_chats_menuBackground}) {
+                colors.put(key, colorset[1]);
+            }
+            colors.put(key_chat_inBubble, colorset[2]);
+            colors.put(key_chat_inBubbleSelected, ColorUtils.blendARGB(colorset[2], colorset[0], 0.18f));
+            colors.put(key_chat_outBubble, colorset[3]);
+            colors.put(key_chat_outBubbleSelected, ColorUtils.blendARGB(colorset[3], colorset[0], 0.22f));
+            colors.put(key_chat_messageTextIn, light ? 0xff30251f : Color.WHITE);
+            colors.put(key_chat_messageTextOut, Color.WHITE);
+            colors.put(key_actionBarDefaultTitle, light ? 0xff30251f : Color.WHITE);
+            colors.put(key_actionBarDefaultIcon, colorset[0]);
+            colors.put(key_windowBackgroundWhiteBlueText, colorset[0]);
+            colors.put(key_chat_messagePanelSend, colorset[0]);
+            colors.delete(key_chat_outBubbleGradient1);
+            colors.delete(key_chat_outBubbleGradient2);
+            colors.delete(key_chat_outBubbleGradient3);
+            colors.delete(key_chat_wallpaper_gradient_to1);
+            colors.delete(key_chat_wallpaper_gradient_to2);
+            colors.delete(key_chat_wallpaper_gradient_to3);
+            StringBuilder data = new StringBuilder();
+            for (int i = 0; i < colors.size(); i++) {
+                data.append(ThemeColors.getStringName(colors.keyAt(i))).append('=')
+                        .append(colors.valueAt(i)).append('\n');
+            }
+            try (FileOutputStream stream = new FileOutputStream(file)) {
+                stream.write(AndroidUtilities.getStringBytes(data.toString()));
+            }
+            ThemeInfo theme = applyThemeFile(file, getWgtgThemeKey(palette), null, false);
+            if (theme != null) {
+                selectedAutoNightType = AUTO_NIGHT_TYPE_NONE;
+                cancelAutoNightThemeCallbacks();
+                saveAutoNightThemeConfig();
+            }
+            return theme;
+        } catch (Exception e) {
+            FileLog.e(e);
+            return null;
+        } finally {
+            file.delete();
+        }
+    }
+
     public static void applyTheme(ThemeInfo themeInfo) {
         applyTheme(themeInfo, true, true, false);
     }

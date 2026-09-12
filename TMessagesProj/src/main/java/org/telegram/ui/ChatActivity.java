@@ -22276,7 +22276,8 @@ public class ChatActivity extends BaseFragment implements
             }
             ArrayList<Integer> markAsDeletedMessages = (ArrayList<Integer>) args[0];
             long channelId = (Long) args[1];
-            if (!scheduled) {
+            boolean locallyDeleted = args.length > 7 && (boolean) args[7];
+            if (!scheduled && !locallyDeleted) {
                 ArrayList<Integer> removedMessages = org.telegram.messenger.WgtgArchive.excludingDeleted(currentAccount, channelId == 0 ? 0 : -channelId, markAsDeletedMessages);
                 if (removedMessages.size() != markAsDeletedMessages.size() && chatListView != null) {
                     chatListView.invalidateViews();
@@ -26367,10 +26368,6 @@ public class ChatActivity extends BaseFragment implements
                     }
                 }
                 obj.deleted = true;
-                if (!sent && org.telegram.messenger.WgtgConfig.preserveDeleted(currentAccount)) {
-                    updated = true;
-                    continue;
-                }
                 if (obj.scheduled && sent) {
                     obj.scheduledSent = true;
                 }

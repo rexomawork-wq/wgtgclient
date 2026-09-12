@@ -179,6 +179,14 @@ public final class WgtgPluginsController {
         return module().callAttr("settings_rows", id).toJava(String.class);
     }
 
+    public static String settingsRows(String id, String parent) {
+        return module().callAttr("settings_rows", id, parent).toJava(String.class);
+    }
+
+    public static boolean settingsAction(String id, String token, String action, String json, android.view.View view) {
+        return module().callAttr("settings_action", id, token, action, json, view).toBoolean();
+    }
+
     public static void setSetting(String id, String key, String json) {
         module().callAttr("set_setting_json", id, key, json);
     }

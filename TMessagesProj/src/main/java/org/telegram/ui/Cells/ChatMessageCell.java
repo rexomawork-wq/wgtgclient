@@ -1580,7 +1580,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             super.draw(canvas);
             return;
         }
-        int save = canvas.saveLayerAlpha(0, 0, getWidth(), getHeight(), 140);
+        int save = canvas.saveLayerAlpha(0, 0, getWidth(), getHeight(), 166);
         super.draw(canvas);
         canvas.restoreToCount(save);
         float left = currentMessageObject.isOutOwner() ? Math.max(0, backgroundDrawableLeft - dp(44))

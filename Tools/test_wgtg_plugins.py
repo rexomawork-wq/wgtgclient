@@ -175,6 +175,89 @@ class PluginTests(unittest.TestCase):
         engine.uninstall(pid)
         self.assertNotIn("wgtg_plugin_hello_world.helper", sys.modules)
 
+    def test_absolute_sibling_imports_survive_load_and_refresh_on_update(self):
+        path = pathlib.Path(self.tmp.name) / "project.plugin"
+        source = SOURCE.replace('    def on_plugin_load(self):',
+            '    def __init__(self):\n        import constructor_helper\n        self.constructor_value = constructor_helper.value\n    def on_plugin_load(self):\n        import load_helper')
+        source = source.replace('return [Input(key=', 'import settings_helper\n        self.set_setting("lazy", settings_helper.value)\n        return [Input(key=')
+        for value in (1, 22):
+            with zipfile.ZipFile(path, "w") as archive:
+                archive.writestr("main.py", source)
+                for name in ("constructor_helper", "load_helper", "settings_helper"):
+                    archive.writestr(name + ".py", "value = " + str(value))
+            pid = engine.install(str(path))
+            engine.set_enabled(pid, True)
+            self.assertFalse(json.loads(engine.list_plugins())[0]["error"])
+            self.assertEqual(engine.loaded[pid]["instance"].constructor_value, value)
+            engine.settings_rows(pid)
+            self.assertEqual(engine.get_setting(pid, "lazy"), value)
+        directory = str(pathlib.Path(engine.root) / pid)
+        engine.set_enabled(pid, False)
+        self.assertNotIn(directory, sys.path)
+        for name in ("constructor_helper", "load_helper", "settings_helper"):
+            self.assertNotIn(name, sys.modules)
+
+    def test_settings_controls_callbacks_and_expired_pages(self):
+        source = '''from base_plugin import BasePlugin
+from ui.settings import Header, Divider, Selector, Switch, Input, EditText, Text
+__id__ = "settings_test"
+__name__ = "Settings"
+class Plugin(BasePlugin):
+    def changed(self, value):
+        self.set_setting("callback_value", value)
+    def clicked(self, view):
+        self.set_setting("clicked", view)
+        return True
+    def create_settings(self):
+        return [Header("General"), Divider(),
+            Selector("choice", "Choice", items=["One", "Two"], on_change=self.changed),
+            Switch("toggle", "Toggle", on_change=self.changed),
+            Input("input", "Input", on_change=self.changed),
+            EditText("edit", "Hint", max_length=4, on_change=self.changed),
+            Text("Open", on_click=self.clicked, on_long_click=self.clicked,
+                 create_sub_fragment=lambda: [Header("Nested")])]
+'''
+        pid = self.install(source)
+        engine.set_enabled(pid, True)
+        rows = json.loads(engine.settings_rows(pid))
+        for index, value in ((2, 1), (3, True), (4, "hello"), (5, "four")):
+            row = rows[index]
+            engine.settings_action(pid, row["token"], "change", json.dumps(value))
+            self.assertEqual(engine.get_setting(pid, row["key"]), value)
+            self.assertEqual(engine.get_setting(pid, "callback_value"), value)
+        for index, value in ((2, -1), (2, True), (3, "true"), (5, "too long")):
+            with self.assertRaises(ValueError):
+                engine.settings_action(pid, rows[index]["token"], "change", json.dumps(value))
+        token = rows[6]["token"]
+        self.assertTrue(engine.settings_action(pid, token, "on_click", view="view"))
+        self.assertEqual(engine.get_setting(pid, "clicked"), "view")
+        self.assertTrue(engine.settings_action(pid, token, "on_long_click", view="long"))
+        self.assertEqual(json.loads(engine.settings_rows(pid, token))[0]["text"], "Nested")
+        with self.assertRaisesRegex(ValueError, "expired"):
+            engine.settings_action(pid, token, "on_click")
+        token = json.loads(engine.settings_rows(pid))[2]["token"]
+        engine.set_enabled(pid, False)
+        with self.assertRaisesRegex(ValueError, "expired"):
+            engine.settings_action(pid, token, "change", "0")
+
+    def test_sibling_import_failure_cleans_path_and_modules(self):
+        path = pathlib.Path(self.tmp.name) / "failed.plugin"
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("main.py", SOURCE + '\nimport failure_helper\nraise RuntimeError("failed")')
+            archive.writestr("failure_helper.py", "value = 1")
+        pid = engine.install(str(path))
+        engine.set_enabled(pid, True)
+        self.assertNotIn("failure_helper", sys.modules)
+        self.assertNotIn(str(pathlib.Path(engine.root) / pid), sys.path)
+        self.assertIn("failed", json.loads(engine.list_plugins())[0]["error"])
+
+    def test_packaged_entry_points_coexist(self):
+        first = self.install()
+        engine.set_enabled(first, True)
+        second = self.install(SOURCE.replace('"hello_world"', '"second_plugin"'))
+        engine.set_enabled(second, True)
+        self.assertTrue(all(item["enabled"] for item in json.loads(engine.list_plugins())))
+
     def test_failed_state_save_rolls_back_update(self):
         pid = self.install()
         engine.set_enabled(pid, True)

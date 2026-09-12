@@ -70,6 +70,8 @@ import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.WgtgConfig;
+import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.utils.ViewOutlineProviderImpl;
 import org.telegram.ui.ChatActivity;
@@ -1722,6 +1724,13 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
         containerViewBack.setAlpha(1.0f);
         containerViewBack.setScaleX(1.0f);
         containerViewBack.setScaleY(1.0f);
+        if (wgtgChatTransitionStyle != WgtgConfig.TRANSITION_DEFAULT) {
+            containerView.setTranslationY(0f);
+            containerViewBack.setTranslationY(0f);
+            containerView.setTranslationX(0f);
+            containerViewBack.setTranslationX(0f);
+            wgtgChatTransitionStyle = WgtgConfig.TRANSITION_DEFAULT;
+        }
     }
 
     public BaseFragment getLastFragment() {
@@ -1804,6 +1813,28 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
         containerViewBack.setVisibility(View.INVISIBLE);
     }
 
+    private int wgtgChatTransitionStyle;
+
+    private void applyWgtgChatTransition(View view, float hidden) {
+        view.setTranslationX(wgtgChatTransitionStyle == WgtgConfig.TRANSITION_DEFAULT ? dp(48) * hidden : 0f);
+        view.setTranslationY(wgtgChatTransitionStyle == WgtgConfig.TRANSITION_SLIDE ? dp(32) * hidden : 0f);
+        float scale = wgtgChatTransitionStyle == WgtgConfig.TRANSITION_SCALE ? 1f - 0.04f * hidden : 1f;
+        view.setScaleX(scale);
+        view.setScaleY(scale);
+    }
+
+    private int getWgtgChatTransition(BaseFragment fragment) {
+        if (!(fragment instanceof ChatActivity) || !SharedConfig.animationsEnabled() || AndroidUtilities.getAnimatorDurationScale() == 0) {
+            return WgtgConfig.TRANSITION_DEFAULT;
+        }
+        int style = WgtgConfig.chatTransition;
+        if (style == WgtgConfig.TRANSITION_SCALE && (SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_LOW
+                || !LiteMode.isEnabled(LiteMode.FLAG_CHAT_SCALE))) {
+            return WgtgConfig.TRANSITION_FADE;
+        }
+        return style;
+    }
+
     private void startLayoutAnimation(final boolean open, final boolean first, final boolean preview) {
         if (first) {
             animationProgress = 0.0f;
@@ -1828,6 +1859,9 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                 }
                 lastFrameTime = newTime;
                 float duration = preview && open ? 190.0f : 150.0f;
+                if (!preview && wgtgChatTransitionStyle != WgtgConfig.TRANSITION_DEFAULT) {
+                    duration = 220f * Math.max(0.01f, AndroidUtilities.getAnimatorDurationScale());
+                }
                 animationProgress += dt / duration;
                 if (animationProgress > 1.0f) {
                     animationProgress = 1.0f;
@@ -1889,7 +1923,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                         containerView.invalidate();
                         invalidate();
                     } else {
-                        containerView.setTranslationX(dp(48) * (1.0f - interpolated));
+                        applyWgtgChatTransition(containerView, 1f - interpolated);
                     }
                 } else {
                     float clampedReverseInterpolated = MathUtils.clamp(1f - interpolated, 0, 1);
@@ -1904,7 +1938,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                         containerView.invalidate();
                         invalidate();
                     } else {
-                        containerViewBack.setTranslationX(dp(48) * interpolated);
+                        applyWgtgChatTransition(containerViewBack, interpolated);
                     }
                 }
                 if (animationProgress < 1) {
@@ -1994,7 +2028,8 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
         if (parentActivity.getCurrentFocus() != null && fragment.hideKeyboardOnShow() && !preview) {
             AndroidUtilities.hideKeyboard(parentActivity.getCurrentFocus());
         }
-        boolean needAnimation = preview || !forceWithoutAnimation && MessagesController.getGlobalMainSettings().getBoolean("view_animations", true);
+        boolean needAnimation = preview || !forceWithoutAnimation && MessagesController.getGlobalMainSettings().getBoolean("view_animations", true)
+                && AndroidUtilities.getAnimatorDurationScale() > 0;
 
         final BaseFragment currentFragment = !fragmentsStack.isEmpty() ? fragmentsStack.get(fragmentsStack.size() - 1) : null;
 
@@ -2213,15 +2248,14 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                     animation = fragment.onCustomTransitionAnimation(true, () -> onAnimationEndCheck(false));
                 }
                 if (animation == null) {
+                    wgtgChatTransitionStyle = preview ? WgtgConfig.TRANSITION_DEFAULT : getWgtgChatTransition(fragment);
                     containerView.setAlpha(0.0f);
                     if (preview) {
                         containerView.setTranslationX(0.0f);
                         containerView.setScaleX(0.9f);
                         containerView.setScaleY(0.9f);
                     } else {
-                        containerView.setTranslationX(48.0f);
-                        containerView.setScaleX(1.0f);
-                        containerView.setScaleY(1.0f);
+                        applyWgtgChatTransition(containerView, 1f);
                     }
                     if (containerView.isKeyboardVisible || containerViewBack.isKeyboardVisible) {
                         if (currentFragment != null && !preview) {
@@ -2559,7 +2593,8 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
             AndroidUtilities.hideKeyboard(parentActivity.getCurrentFocus());
         }
         setInnerTranslationX(0);
-        boolean needAnimation = !forceNoAnimation && (inPreviewMode || transitionAnimationPreviewMode || animated && MessagesController.getGlobalMainSettings().getBoolean("view_animations", true));
+        boolean needAnimation = !forceNoAnimation && (inPreviewMode || transitionAnimationPreviewMode || animated
+                && MessagesController.getGlobalMainSettings().getBoolean("view_animations", true) && AndroidUtilities.getAnimatorDurationScale() > 0);
         final BaseFragment currentFragment = fragmentsStack.get(fragmentsStack.size() - 1);
         BaseFragment previousFragment = null;
         if (fragmentsStack.size() > 1) {
@@ -2662,6 +2697,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                     animation = currentFragment.onCustomTransitionAnimation(false, () -> onAnimationEndCheck(false));
                 }
                 if (animation == null) {
+                    wgtgChatTransitionStyle = inPreviewMode || transitionAnimationPreviewMode ? WgtgConfig.TRANSITION_DEFAULT : getWgtgChatTransition(currentFragment);
                     if (!inPreviewMode && (containerView.isKeyboardVisible || containerViewBack.isKeyboardVisible)) {
                         waitingForKeyboardCloseRunnable = new Runnable() {
                             @Override
