@@ -14722,6 +14722,11 @@ public class ChatActivity extends BaseFragment implements
     private int fieldPanelShown;
 
     public void showFieldPanel(boolean show, MessageObject messageObjectToReply, MessageObject messageObjectToEdit, ArrayList<MessageObject> messageObjectsToForward, TLRPC.WebPage webPage, boolean notify, int scheduleDate, ReplyQuote quote, boolean cancel, long payStars, MessageSuggestionParams suggestionParams, boolean animated) {
+        if (show && (org.telegram.messenger.WgtgArchive.hiddenContent(messageObjectToReply)
+                || org.telegram.messenger.WgtgArchive.hiddenContent(messageObjectToEdit))) return;
+        if (show && messageObjectsToForward != null) for (MessageObject message : messageObjectsToForward) {
+            if (org.telegram.messenger.WgtgArchive.hiddenContent(message)) return;
+        }
         if (chatActivityEnterView == null) {
             return;
         }
@@ -20546,7 +20551,8 @@ public class ChatActivity extends BaseFragment implements
         if (postponedScroll) {
             postponedScrollToLastMessageQueryIndex = 0;
         }
-        ArrayList<MessageObject> messArr = (ArrayList<MessageObject>) args[2];
+        ArrayList<MessageObject> messArr = new ArrayList<>((ArrayList<MessageObject>) args[2]);
+        messArr.removeIf(org.telegram.messenger.WgtgArchive::hiddenContent);
 
         boolean universalNotify = false;
         HashMap<Integer, MessageObject> oldMessages = null;
@@ -21972,7 +21978,8 @@ public class ChatActivity extends BaseFragment implements
         } else if (id == NotificationCenter.didReceiveNewMessages) {
             FileLog.d("ChatActivity didReceiveNewMessages start");
             long did = (Long) args[0];
-            ArrayList<MessageObject> arr = (ArrayList<MessageObject>) args[1];
+            ArrayList<MessageObject> arr = new ArrayList<>((ArrayList<MessageObject>) args[1]);
+            arr.removeIf(org.telegram.messenger.WgtgArchive::hiddenContent);
             if (isInsideContainer) return;
             if (did == dialog_id) {
                 boolean scheduled = (Boolean) args[2];
@@ -22277,7 +22284,7 @@ public class ChatActivity extends BaseFragment implements
             ArrayList<Integer> markAsDeletedMessages = (ArrayList<Integer>) args[0];
             long channelId = (Long) args[1];
             boolean locallyDeleted = args.length > 7 && (boolean) args[7];
-            if (!scheduled && !locallyDeleted) {
+            if (!scheduled && !locallyDeleted && !org.telegram.messenger.WgtgPasscode.isRestricted()) {
                 ArrayList<Integer> removedMessages = org.telegram.messenger.WgtgArchive.excludingDeleted(currentAccount, channelId == 0 ? 0 : -channelId, markAsDeletedMessages);
                 if (removedMessages.size() != markAsDeletedMessages.size() && chatListView != null) {
                     chatListView.invalidateViews();
@@ -28366,6 +28373,10 @@ public class ChatActivity extends BaseFragment implements
         } else {
             pinnedMessageObject = null;
             pinned_msg_id = 0;
+        }
+        if (org.telegram.messenger.WgtgArchive.hiddenContent(pinnedMessageObject)) {
+            hidePinnedMessageView(false);
+            return;
         }
         TL_keyboard.KeyboardInlineButton botButton = pinnedButton(pinnedMessageObject);
         String callLink = callLink(pinnedMessageObject);

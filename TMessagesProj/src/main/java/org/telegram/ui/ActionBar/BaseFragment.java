@@ -209,6 +209,7 @@ public abstract class BaseFragment {
     }
 
     public BaseFragment(Bundle args) {
+        org.telegram.ui.WgtgPrivacyUi.track(this);
         arguments = args;
         classGuid = ConnectionsManager.generateClassGuid();
         if (BuildConfig.DEBUG_PRIVATE_VERSION) {
@@ -492,6 +493,7 @@ public abstract class BaseFragment {
 
     @CallSuper
     public void onFragmentDestroy() {
+        org.telegram.ui.WgtgPrivacyUi.forget(this);
         getConnectionsManager().cancelRequestsForGuid(classGuid);
         getMessagesStorage().cancelTasksForGuid(classGuid);
         isFinished = true;
@@ -842,6 +844,9 @@ public abstract class BaseFragment {
                 }
             });
             visibleDialog.show();
+            if (visibleDialog.getWindow() != null) {
+                org.telegram.messenger.WgtgFontConfig.watch(visibleDialog.getWindow().getDecorView());
+            }
             return visibleDialog;
         } catch (Exception e) {
             FileLog.e(e);

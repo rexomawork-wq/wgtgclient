@@ -2470,6 +2470,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
             child.setAccessibilityDelegate(null);
         }
         super.onChildAttachedToWindow(child);
+        org.telegram.messenger.WgtgFontConfig.applyTree(child);
     }
 
     @Override

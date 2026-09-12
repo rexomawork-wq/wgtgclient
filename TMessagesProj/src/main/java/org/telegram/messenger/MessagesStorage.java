@@ -12189,6 +12189,7 @@ public class MessagesStorage extends BaseController {
 
                     int messageId = message.id;
                     MessageObject.getDialogId(message);
+                    WgtgArchive.captureEdit(currentAccount, message.dialog_id, message);
                     long topicId = MessageObject.getTopicId(currentAccount, message, getForumTypeFlags(message.dialog_id));
 
                     if (message.mentioned && message.media_unread) {
@@ -16303,6 +16304,7 @@ public class MessagesStorage extends BaseController {
                     }
                     for (int a = 0; a < count; a++) {
                         TLRPC.Message message = messages.messages.get(a);
+                        WgtgArchive.captureEdit(currentAccount, dialogId, message);
                         if (lastMessageId == null && message != null || lastMessageId != null && lastMessageId < message.id) {
                             lastMessageId = message.id;
                             lastMessageGroupId = (message.flags & 131072) != 0 ? message.grouped_id : null;
@@ -17434,6 +17436,7 @@ public class MessagesStorage extends BaseController {
 
                     TLRPC.Message message = new_dialogMessage.get(dialog.id);
                     if (message != null) {
+                        WgtgArchive.captureEdit(currentAccount, dialog.id, message);
                         messageDate = Math.max(message.date, messageDate);
 
                         if (isValidKeyboardToSave(message)) {

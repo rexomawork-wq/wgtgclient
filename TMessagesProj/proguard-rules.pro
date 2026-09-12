@@ -122,3 +122,11 @@
 # Use -keep to explicitly keep any other classes shrinking would remove
 -dontoptimize
 -dontobfuscate
+
+# WgtgFontConfig discovers only app-owned text paints/drawables for live font changes.
+-keepclassmembers class org.telegram.** {
+    android.text.TextPaint *;
+    android.text.TextPaint[] *;
+    org.telegram.ui.Components.AnimatedTextView$AnimatedTextDrawable *;
+    org.telegram.ui.Components.Text *;
+}

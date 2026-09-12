@@ -12,16 +12,41 @@ public final class WgtgConfig {
     public static final int TRANSITION_FADE = 1;
     public static final int TRANSITION_SLIDE = 2;
     public static final int TRANSITION_SCALE = 3;
-    public static volatile int messageTransition = Math.max(0, Math.min(3, prefs.getInt("messageTransition", 0)));
-    public static volatile int chatTransition = Math.max(0, Math.min(3, prefs.getInt("chatTransition", 0)));
+    public static final int TRANSITION_DROP = 4;
+    public static final int TRANSITION_ZOOM = 5;
+    public static final int TRANSITION_LIFT = 6;
+    public static volatile int messageTransition = Math.max(0, Math.min(6, prefs.getInt("messageTransition", 0)));
+    public static volatile int chatTransition = Math.max(0, Math.min(6, prefs.getInt("chatTransition", 0)));
+    public static volatile int animationDuration = Math.max(120, Math.min(500, prefs.getInt("animationDuration", 240)));
+    public static volatile int deletedOpacity = Math.max(20, Math.min(100, prefs.getInt("deletedOpacity", 65)));
+
+    public static void setAnimationDuration(int duration) {
+        animationDuration = Math.max(120, Math.min(500, duration));
+        prefs.edit().putInt("animationDuration", animationDuration).apply();
+    }
+
+    public static void setDeletedOpacity(int opacity) {
+        deletedOpacity = Math.max(20, Math.min(100, opacity));
+        prefs.edit().putInt("deletedOpacity", deletedOpacity).apply();
+    }
+
+    // -1 inherits the global bold preference; 0 explicitly disables formatting for this chat.
+    public static int chatFormat(int account, long dialog) {
+        int style = prefs.getInt("format_" + account + "_" + dialog, -1);
+        return style < 0 ? (autoBold ? 1 : 0) : Math.min(4, style);
+    }
+
+    public static void setChatFormat(int account, long dialog, int style) {
+        prefs.edit().putInt("format_" + account + "_" + dialog, Math.max(-1, Math.min(4, style))).apply();
+    }
 
     public static void setMessageTransition(int style) {
-        messageTransition = Math.max(0, Math.min(3, style));
+        messageTransition = Math.max(0, Math.min(6, style));
         prefs.edit().putInt("messageTransition", messageTransition).apply();
     }
 
     public static void setChatTransition(int style) {
-        chatTransition = Math.max(0, Math.min(3, style));
+        chatTransition = Math.max(0, Math.min(6, style));
         prefs.edit().putInt("chatTransition", chatTransition).apply();
     }
 
@@ -37,6 +62,14 @@ public final class WgtgConfig {
 
     public static boolean preserveDeleted(int account) {
         return prefs.getBoolean("preserveDeleted" + account, false);
+    }
+
+    public static boolean preserveEdits(int account) {
+        return prefs.getBoolean("preserveEdits" + account, false);
+    }
+
+    public static void setPreserveEdits(int account, boolean enabled) {
+        prefs.edit().putBoolean("preserveEdits" + account, enabled).apply();
     }
 
     public static void setPreserveDeleted(int account, boolean enabled) {

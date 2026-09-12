@@ -4282,11 +4282,12 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         TLRPC.TL_messageMediaWebPage mediaWebPage = sendMessageParams.mediaWebPage;
         boolean searchLinks = sendMessageParams.searchLinks;
         MessageObject retryMessageObject = sendMessageParams.retryMessageObject;
-        ArrayList<TLRPC.MessageEntity> entities = WgtgConfig.autoBold && retryMessageObject == null
+        int autoFormat = WgtgConfig.chatFormat(currentAccount, peer);
+        ArrayList<TLRPC.MessageEntity> entities = autoFormat != 0 && retryMessageObject == null
                 && sendMessageParams.richMessage == null
                 && (sendMessageParams.params == null || !sendMessageParams.params.containsKey("query_id"))
                 && (message == null || !getMessagesController().diceEmojies.contains(message.replace("\ufe0f", "")))
-                ? WgtgMessageFormatting.boldUnformatted(message != null ? message : caption, sendMessageParams.entities)
+                ? WgtgMessageFormatting.formatUnformatted(message != null ? message : caption, sendMessageParams.entities, autoFormat)
                 : sendMessageParams.entities;
         TLRPC.ReplyMarkup replyMarkup = sendMessageParams.replyMarkup;
         HashMap<String, String> params = sendMessageParams.params;

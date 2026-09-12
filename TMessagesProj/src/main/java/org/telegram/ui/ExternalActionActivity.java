@@ -227,6 +227,9 @@ public class ExternalActionActivity extends Activity implements INavigationLayou
                 layersActionBarLayout.showLastFragment();
             }
 
+            if (actionBarLayout.getFragmentStack().isEmpty()
+                    && (layersActionBarLayout == null || layersActionBarLayout.getFragmentStack().isEmpty())) finish();
+
             NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.passcodeDismissed, view);
         });
     }

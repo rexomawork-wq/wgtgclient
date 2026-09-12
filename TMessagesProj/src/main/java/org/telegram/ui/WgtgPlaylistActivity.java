@@ -22,6 +22,10 @@ public class WgtgPlaylistActivity extends BaseFragment implements NotificationCe
     private TextSettingsCell play;
     private TextInfoPrivacyCell playbackInfo;
     private LinearLayout sourceRows;
+    private LinearLayout trackRows;
+    private String trackQuery = "";
+    private int trackLimit = 50;
+    private int trackSort;
     private final ArrayList<Long> loadingSources = new ArrayList<>();
     private final Runnable loadTimeout = () -> {
         stopLoading();
@@ -58,6 +62,43 @@ public class WgtgPlaylistActivity extends BaseFragment implements NotificationCe
         play.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
         play.setOnClickListener(v -> loadSources());
         playbackInfo = WgtgSettingsActivity.info(content, R.string.WgtgPlaylistLimit);
+        WgtgSettingsActivity.row(content, R.string.WgtgOpenPlayer, true).setOnClickListener(v -> {
+            MessageObject playing = MediaController.getInstance().getPlayingMessageObject();
+            if (playing != null && playing.isMusic() && playing.currentAccount == currentAccount && getParentActivity() != null) {
+                showDialog(new org.telegram.ui.Components.AudioPlayerAlert(getParentActivity(), getResourceProvider()));
+            } else playbackInfo.setText(LocaleController.getString(R.string.WgtgNoPlayingMusic));
+        });
+        android.widget.EditText search = new android.widget.EditText(context);
+        search.setSingleLine(true);
+        search.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        search.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        search.setHint(LocaleController.getString(R.string.WgtgSearchMusic));
+        search.setText(trackQuery);
+        content.addView(search);
+        search.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                trackQuery = s.toString().trim().toLowerCase(java.util.Locale.ROOT);
+                trackLimit = 50;
+                redrawTracks();
+            }
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+        CharSequence[] sorts = {LocaleController.getString(R.string.WgtgMusicSourceOrder),
+                LocaleController.getString(R.string.WgtgMusicTitleOrder), LocaleController.getString(R.string.WgtgMusicArtistOrder)};
+        TextSettingsCell sort = WgtgSettingsActivity.row(content, R.string.WgtgMusicSort, true);
+        sort.setTextAndValue(LocaleController.getString(R.string.WgtgMusicSort), sorts[trackSort].toString(), true);
+        sort.setOnClickListener(v -> showDialog(new AlertDialog.Builder(context).setTitle(LocaleController.getString(R.string.WgtgMusicSort))
+                .setItems(sorts, (dialog, which) -> {
+                    trackSort = which;
+                    sort.setTextAndValue(LocaleController.getString(R.string.WgtgMusicSort), sorts[which].toString(), true);
+                    trackLimit = 50;
+                    redrawTracks();
+                }).create()));
+        trackRows = new LinearLayout(context);
+        trackRows.setOrientation(LinearLayout.VERTICAL);
+        content.addView(trackRows);
+        redrawTracks();
         redraw(); fragmentView = scroll; return fragmentView;
     }
 
@@ -116,6 +157,7 @@ public class WgtgPlaylistActivity extends BaseFragment implements NotificationCe
     private void loadSources() {
         if (sources.isEmpty() || requestGuid != 0) return;
         music.clear(); loadingIndex = 0; requestGuid = ConnectionsManager.generateClassGuid();
+        redrawTracks();
         loadingSources.clear();
         loadingSources.addAll(sources);
         playbackInfo.setText(LocaleController.getString(R.string.WgtgPlaylistLimit));
@@ -129,6 +171,7 @@ public class WgtgPlaylistActivity extends BaseFragment implements NotificationCe
             stopLoading();
             if (music.isEmpty()) { playbackInfo.setText(LocaleController.getString(R.string.WgtgNoMusic)); return; }
             MediaController.getInstance().setPlaylist(music, music.get(0), 0, false, null);
+            redrawTracks();
             play.setText(LocaleController.getString(R.string.WgtgPlay), false); return;
         }
         AndroidUtilities.runOnUIThread(loadTimeout, 30000);
@@ -138,8 +181,45 @@ public class WgtgPlaylistActivity extends BaseFragment implements NotificationCe
     @Override public void didReceivedNotification(int id, int account, Object... args) {
         if (account != currentAccount || id != NotificationCenter.mediaDidLoad || requestGuid == 0 || (Integer) args[3] != requestGuid || (Integer) args[4] != MediaDataController.MEDIA_MUSIC) return;
         ArrayList<MessageObject> loaded = (ArrayList<MessageObject>) args[2];
-        for (MessageObject object : loaded) { if (object.isMusic() && !music.contains(object)) music.add(object); }
+        for (MessageObject object : loaded) {
+            if (!object.isMusic()) continue;
+            boolean duplicate = false;
+            for (MessageObject old : music) {
+                if (old.getDialogId() == object.getDialogId() && old.getId() == object.getId()) { duplicate = true; break; }
+            }
+            if (!duplicate) music.add(object);
+        }
+        redrawTracks();
         loadNext();
+    }
+
+    private void redrawTracks() {
+        if (trackRows == null) return;
+        trackRows.removeAllViews();
+        ArrayList<MessageObject> tracks = new ArrayList<>();
+        for (MessageObject object : music) {
+            if ((object.getMusicTitle() + " " + object.getMusicAuthor()).toLowerCase(java.util.Locale.ROOT).contains(trackQuery)) tracks.add(object);
+        }
+        if (trackSort != 0) tracks.sort((a, b) -> String.CASE_INSENSITIVE_ORDER.compare(
+                trackSort == 1 ? a.getMusicTitle() : a.getMusicAuthor(), trackSort == 1 ? b.getMusicTitle() : b.getMusicAuthor()));
+        if (tracks.isEmpty()) WgtgSettingsActivity.info(trackRows, R.string.WgtgNoMusic);
+        for (int i = 0; i < Math.min(trackLimit, tracks.size()); i++) {
+            MessageObject object = tracks.get(i);
+            android.widget.TextView row = WgtgSettingsActivity.text(trackRows.getContext(), object.getMusicTitle() + "\n"
+                    + object.getMusicAuthor() + " / " + AndroidUtilities.formatShortDuration((int) object.getDuration()));
+            row.setBackground(Theme.getSelectorDrawable(false));
+            row.setEnabled(requestGuid == 0);
+            row.setOnClickListener(v -> {
+                if (getParentActivity() == null) return;
+                MediaController.getInstance().setPlaylist(new ArrayList<>(tracks), object, 0, false, null);
+                showDialog(new org.telegram.ui.Components.AudioPlayerAlert(getParentActivity(), getResourceProvider()));
+            });
+            trackRows.addView(row);
+        }
+        if (tracks.size() > trackLimit) WgtgSettingsActivity.row(trackRows, R.string.WgtgLoadMore, false).setOnClickListener(v -> {
+            trackLimit += 50;
+            redrawTracks();
+        });
     }
 
     private void stopLoading() {
@@ -148,6 +228,7 @@ public class WgtgPlaylistActivity extends BaseFragment implements NotificationCe
         if (requestGuid != 0) ConnectionsManager.getInstance(currentAccount).cancelRequestsForGuid(requestGuid);
         requestGuid = 0;
         if (play != null) redraw();
+        redrawTracks();
     }
 
     @Override public void onFragmentDestroy() {

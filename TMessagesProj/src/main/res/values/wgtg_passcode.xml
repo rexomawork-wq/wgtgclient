@@ -1,0 +1,8 @@
+<resources>
+    <string name="WgtgAlternatePasscode">Alternate passcode</string>
+    <string name="WgtgNormalPasscode">Current normal passcode</string>
+    <string name="WgtgConfirmAlternatePasscode">Confirm alternate passcode</string>
+    <string name="WgtgRemoveAlternatePasscode">Remove alternate passcode</string>
+    <string name="WgtgAlternatePasscodeInfo">The alternate code opens the app with the local archive, edit history and preserved deleted messages hidden. Only the normal code restores access; fingerprint unlock and restarting keep them hidden. No messages are deleted. Changing or disabling the normal code disables the alternate code. Use a different four-digit PIN, or a password if your normal code is a password. Files already exported to other apps cannot be hidden by this setting.</string>
+    <string name="WgtgAlternatePasscodeError">Check the normal code, use a different alternate code and repeat it exactly. After too many attempts, wait before trying again.</string>
+</resources>

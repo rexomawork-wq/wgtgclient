@@ -1575,12 +1575,13 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     public void draw(Canvas canvas) {
+        if (org.telegram.messenger.WgtgArchive.hiddenContent(currentMessageObject)) { wgtgDeleteBounds.setEmpty(); return; }
         if (!isPreservedDeletedMessage()) {
             wgtgDeleteBounds.setEmpty();
             super.draw(canvas);
             return;
         }
-        int save = canvas.saveLayerAlpha(0, 0, getWidth(), getHeight(), 166);
+        int save = canvas.saveLayerAlpha(0, 0, getWidth(), getHeight(), 255 * org.telegram.messenger.WgtgConfig.deletedOpacity / 100);
         super.draw(canvas);
         canvas.restoreToCount(save);
         float left = currentMessageObject.isOutOwner() ? Math.max(0, backgroundDrawableLeft - dp(44))
@@ -4947,6 +4948,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (org.telegram.messenger.WgtgArchive.hiddenContent(currentMessageObject)) return false;
         if (isPreservedDeletedMessage() && delegate != null && delegate.canPerformActions()) {
             boolean inside = wgtgDeleteBounds.contains(event.getX(), event.getY());
             if (event.getActionMasked() == MotionEvent.ACTION_DOWN && inside) {
@@ -12160,6 +12162,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     protected boolean onLongPress() {
+        if (org.telegram.messenger.WgtgArchive.hiddenContent(currentMessageObject)) return false;
         if (isRoundVideo && isPlayingRound && MediaController.getInstance().isPlayingMessage(currentMessageObject)) {
             float touchRadius = (lastTouchX - photoImage.getCenterX()) * (lastTouchX - photoImage.getCenterX()) + (lastTouchY - photoImage.getCenterY()) * (lastTouchY - photoImage.getCenterY());
             float r1 = (photoImage.getImageWidth() / 2f) * (photoImage.getImageWidth() / 2f);
@@ -18413,6 +18416,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     public void onProvideStructure(ViewStructure structure) {
+        if (org.telegram.messenger.WgtgArchive.hiddenContent(currentMessageObject)) return;
         super.onProvideStructure(structure);
         if (allowAssistant && Build.VERSION.SDK_INT >= 23) {
             if (currentMessageObject != null && currentMessageObject.messageText != null && currentMessageObject.messageText.length() > 0) {
@@ -20409,7 +20413,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     public void drawBackgroundInternal(Canvas canvas, boolean fromParent) {
         int save = fromParent && isPreservedDeletedMessage()
-            ? canvas.saveLayerAlpha(0, 0, getWidth(), getHeight(), 140) : -1;
+            ? canvas.saveLayerAlpha(0, 0, getWidth(), getHeight(), 255 * org.telegram.messenger.WgtgConfig.deletedOpacity / 100) : -1;
         drawBackgroundInternal(canvas, fromParent, false);
         if (save != -1) canvas.restoreToCount(save);
     }
@@ -26628,6 +26632,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     public boolean performAccessibilityAction(int action, Bundle arguments) {
+        if (org.telegram.messenger.WgtgArchive.hiddenContent(currentMessageObject)) return false;
         if (action == R.id.wgtg_delete_local && isPreservedDeletedMessage() && delegate != null && delegate.canPerformActions()) {
             delegate.didPressDeletePreservedMessage(this);
             return true;
@@ -26728,6 +26733,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+        if (org.telegram.messenger.WgtgArchive.hiddenContent(currentMessageObject)) { info.setVisibleToUser(false); return; }
         super.onInitializeAccessibilityNodeInfo(info);
         if (isPreservedDeletedMessage()) {
             info.addAction(new AccessibilityNodeInfo.AccessibilityAction(R.id.wgtg_delete_local, LocaleController.getString(R.string.WgtgDeleteLocal)));
@@ -26736,6 +26742,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     public AccessibilityNodeProvider getAccessibilityNodeProvider() {
+        if (org.telegram.messenger.WgtgArchive.hiddenContent(currentMessageObject)) return null;
         return new MessageAccessibilityNodeProvider();
     }
 
@@ -27131,6 +27138,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
         @Override
         public AccessibilityNodeInfo createAccessibilityNodeInfo(int virtualViewId) {
+            if (org.telegram.messenger.WgtgArchive.hiddenContent(currentMessageObject)) return null;
             int[] pos = {0, 0};
             getLocationOnScreen(pos);
             if (virtualViewId == HOST_VIEW_ID) {
@@ -27910,6 +27918,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
         @Override
         public boolean performAction(int virtualViewId, int action, Bundle arguments) {
+            if (org.telegram.messenger.WgtgArchive.hiddenContent(currentMessageObject)) return false;
             if (virtualViewId == HOST_VIEW_ID) {
                 performAccessibilityAction(action, arguments);
             } else {

@@ -326,6 +326,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
         if (!AndroidUtilities.isSafeToShow(getContext())) return;
         dismissed = false;
         super.show();
+        org.telegram.messenger.WgtgFontConfig.watch(getWindow().getDecorView());
         if (progressViewContainer != null && progressViewStyle == ALERT_TYPE_SPINNER) {
             progressViewContainer.setScaleX(0);
             progressViewContainer.setScaleY(0);

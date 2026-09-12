@@ -80,6 +80,8 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 public class PasscodeView extends FrameLayout implements NotificationCenter.NotificationCenterDelegate {
+    private long wgtgLockSession;
+    private int wgtgBiometricAttempt;
     private final static float BACKGROUND_SPRING_STIFFNESS = 300f;
 
     @Override
@@ -934,6 +936,12 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
     }
 
     private void processDone(boolean fingerprint) {
+        processDone(fingerprint, wgtgLockSession);
+    }
+
+    private void processDone(boolean fingerprint, long session) {
+        if (session != wgtgLockSession || !isAttachedToWindow() || getVisibility() != VISIBLE
+                || !org.telegram.messenger.WgtgPasscode.isCurrentSession(session)) return;
         if (!fingerprint) {
             if (SharedConfig.passcodeRetryInMs > 0) {
                 return;
@@ -948,7 +956,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 onPasscodeError();
                 return;
             }
-            if (!SharedConfig.checkPasscode(password)) {
+            if (!org.telegram.messenger.WgtgPasscode.unlock(password, session)) {
                 SharedConfig.increaseBadPasscodeTries();
                 if (SharedConfig.passcodeRetryInMs > 0) {
                     checkRetryTextView();
@@ -968,7 +976,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 }
                 return;
             }
-        }
+        } else if (!org.telegram.messenger.WgtgPasscode.acceptBiometric(session)) return;
         SharedConfig.badPasscodeTries = 0;
         passwordEditText.clearFocus();
         AndroidUtilities.hideKeyboard(passwordEditText);
@@ -984,6 +992,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         if (delegate != null) {
             delegate.didAcceptedPassword(this);
         }
+        org.telegram.messenger.WgtgPasscode.refreshAccess();
 
         imageView.getAnimatedDrawable().setCustomEndFrame(71);
         imageView.getAnimatedDrawable().setCurrentFrame(37, false);
@@ -1134,6 +1143,8 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
 
     @Override
     protected void onDetachedFromWindow() {
+        wgtgBiometricAttempt++;
+        wgtgLockSession = -1;
         super.onDetachedFromWindow();
 
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didGenerateFingerprintKeyPair);
@@ -1189,6 +1200,8 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             try {
                 if (BiometricManager.from(getContext()).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS && FingerprintController.isKeyReady() && !FingerprintController.checkDeviceFingerprintsChanged()) {
                     final Executor executor = ContextCompat.getMainExecutor(getContext());
+                    final long session = wgtgLockSession;
+                    final int attempt = ++wgtgBiometricAttempt;
                     BiometricPrompt prompt = new BiometricPrompt(LaunchActivity.instance, executor, new BiometricPrompt.AuthenticationCallback() {
                         @Override
                         public void onAuthenticationError(int errMsgId, @NonNull CharSequence errString) {
@@ -1199,7 +1212,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                         @Override
                         public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                             FileLog.d("PasscodeView onAuthenticationSucceeded");
-                            processDone(true);
+                            if (attempt == wgtgBiometricAttempt && !ApplicationLoader.mainInterfacePaused) processDone(true, session);
                         }
 
                         @Override
@@ -1265,6 +1278,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
     }
 
     public void onShow(boolean fingerprint, boolean animated, int x, int y, Runnable onShow, Runnable onStart) {
+        wgtgLockSession = org.telegram.messenger.WgtgPasscode.beginLock();
         checkFingerprintButton();
         checkRetryTextView();
         Activity parentActivity = AndroidUtilities.findActivity(getContext());

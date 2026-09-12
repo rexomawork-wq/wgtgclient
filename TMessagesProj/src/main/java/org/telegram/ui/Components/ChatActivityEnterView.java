@@ -2681,6 +2681,21 @@ public class ChatActivityEnterView extends FrameLayout implements
         };
         emojiButton.setContentDescription(getString(R.string.AccDescrEmojiButton));
         emojiButton.setFocusable(true);
+        emojiButton.setOnLongClickListener(v -> {
+            if (parentFragment == null || dialog_id == 0) return false;
+            int[] labels = {R.string.WgtgOff, R.string.WgtgFormatBold, R.string.WgtgFormatItalic,
+                    R.string.WgtgFormatMono, R.string.WgtgFormatSpoiler, R.string.WgtgFormatDefault};
+            CharSequence[] items = new CharSequence[labels.length];
+            int selected = org.telegram.messenger.WgtgConfig.chatFormat(currentAccount, dialog_id);
+            for (int i = 0; i < labels.length; i++) {
+                items[i] = (i == selected ? "\u2022 " : "") + getString(labels[i]);
+            }
+            parentFragment.showDialog(new AlertDialog.Builder(getContext(), resourcesProvider)
+                    .setTitle(getString(R.string.WgtgChatFormat))
+                    .setItems(items, (dialog, which) -> org.telegram.messenger.WgtgConfig.setChatFormat(
+                            currentAccount, dialog_id, which == 5 ? -1 : which)).create());
+            return true;
+        });
         int padding = dp(7.5f);
         emojiButton.setPadding(padding, padding, padding, padding);
         emojiButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));

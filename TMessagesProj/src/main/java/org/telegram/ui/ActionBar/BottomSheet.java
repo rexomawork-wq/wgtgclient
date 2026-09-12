@@ -1565,6 +1565,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
             onCreateInternal();
         } else {
             super.show();
+            org.telegram.messenger.WgtgFontConfig.watch(getWindow().getDecorView());
         }
         setShowing(true);
         if (focusable) {

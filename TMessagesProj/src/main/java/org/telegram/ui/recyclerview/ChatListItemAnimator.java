@@ -1572,7 +1572,7 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
             return false;
         }
         ChatMessageCell cell = (ChatMessageCell) holder.itemView;
-        if (style == WgtgConfig.TRANSITION_SCALE && (cell.getCurrentMessagesGroup() != null
+        if ((style == WgtgConfig.TRANSITION_SCALE || style >= WgtgConfig.TRANSITION_ZOOM) && (cell.getCurrentMessagesGroup() != null
                 || SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_LOW
                 || !LiteMode.isEnabled(LiteMode.FLAG_CHAT_SCALE))) {
             style = WgtgConfig.TRANSITION_FADE;
@@ -1583,13 +1583,15 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
         }
         cell.getTransitionParams().messageEntering = true;
         cell.setAlpha(0f);
-        cell.setTranslationY(style == WgtgConfig.TRANSITION_SLIDE ? AndroidUtilities.dp(24) : 0f);
-        cell.setScaleX(style == WgtgConfig.TRANSITION_SCALE ? 0.94f : 1f);
+        cell.setTranslationY(style == WgtgConfig.TRANSITION_DROP ? -AndroidUtilities.dp(24)
+                : style == WgtgConfig.TRANSITION_SLIDE || style == WgtgConfig.TRANSITION_LIFT ? AndroidUtilities.dp(24) : 0f);
+        cell.setScaleX(style == WgtgConfig.TRANSITION_ZOOM ? 1.06f
+                : style == WgtgConfig.TRANSITION_SCALE || style == WgtgConfig.TRANSITION_LIFT ? 0.94f : 1f);
         cell.setScaleY(cell.getScaleX());
         mAddAnimations.add(holder);
         final ViewPropertyAnimator animation = cell.animate();
         animation.alpha(1f).translationY(0f).scaleX(1f).scaleY(1f)
-                .setStartDelay(0).setDuration(style == WgtgConfig.TRANSITION_FADE ? 180 : 240)
+                .setStartDelay(0).setDuration(style == WgtgConfig.TRANSITION_FADE ? WgtgConfig.animationDuration * 3L / 4 : WgtgConfig.animationDuration)
                 .setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT)
                 .setListener(new AnimatorListenerAdapter() {
                     @Override

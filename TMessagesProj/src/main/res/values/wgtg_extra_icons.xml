@@ -1,0 +1,8 @@
+<resources>
+    <color name="wgtg_cobalt">#2456CC</color>
+    <color name="wgtg_plum">#702E83</color>
+    <color name="wgtg_coral">#DB4D60</color>
+    <string name="WgtgIconCobalt">Cobalt</string>
+    <string name="WgtgIconPlum">Plum</string>
+    <string name="WgtgIconCoral">Coral</string>
+</resources>

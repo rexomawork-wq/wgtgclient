@@ -425,6 +425,15 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     private MessageObject message;
     private boolean isForum;
     private ArrayList<MessageObject> groupMessages;
+
+    private boolean wgtgHiddenPreview() {
+        if (!org.telegram.messenger.WgtgPasscode.isRestricted()) return false;
+        if (org.telegram.messenger.WgtgArchive.hiddenContent(message)) return true;
+        if (groupMessages != null) for (MessageObject item : groupMessages) {
+            if (org.telegram.messenger.WgtgArchive.hiddenContent(item)) return true;
+        }
+        return false;
+    }
     private boolean clearingDialog;
     private CharSequence lastMessageString;
     private int dialogsType;
@@ -3762,6 +3771,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     @SuppressLint("DrawAllocation")
     @Override
     protected void onDraw(Canvas canvas) {
+        if (wgtgHiddenPreview()) return;
         if (currentDialogId == 0 && customDialog == null) {
             return;
         }
@@ -5468,6 +5478,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
     @Override
     public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+        if (wgtgHiddenPreview()) { info.setVisibleToUser(false); return; }
         super.onInitializeAccessibilityNodeInfo(info);
         if (isFolderCell() && archivedChatsDrawable != null && SharedConfig.archiveHidden && archivedChatsDrawable.getPullProgress() == 0.0f) {
             info.setVisibleToUser(false);
@@ -5487,6 +5498,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
     @Override
     public void onPopulateAccessibilityEvent(AccessibilityEvent event) {
+        if (wgtgHiddenPreview()) return;
         super.onPopulateAccessibilityEvent(event);
         StringBuilder sb = new StringBuilder();
         if (titleOverride != null) {
@@ -6079,6 +6091,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (wgtgHiddenPreview()) return false;
         if (rightFragmentOpenedProgress == 0 && !isTopic && !isShareToStoryCell && storyParams.checkOnTouchEvent(event, this)) {
             return true;
         }

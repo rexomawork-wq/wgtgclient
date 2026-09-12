@@ -117,19 +117,30 @@ class TestWgtgTransitions {
                         check(android.content.SharedPreferences.values.get("messageTransition").equals(1));
                         check(android.content.SharedPreferences.values.get("chatTransition").equals(2));
                         WgtgConfig.setMessageTransition(99); WgtgConfig.setChatTransition(-1);
-                        check(WgtgConfig.messageTransition == 3 && WgtgConfig.chatTransition == 0);
-                        for(int style=1; style<=3; style++) for(boolean cancel : new boolean[]{false,true}) {
+                        check(WgtgConfig.messageTransition == 6 && WgtgConfig.chatTransition == 0);
+                        WgtgConfig.setAnimationDuration(0); check(WgtgConfig.animationDuration == 120);
+                        WgtgConfig.setAnimationDuration(999); check(WgtgConfig.animationDuration == 500);
+                        WgtgConfig.setAnimationDuration(240);
+                        WgtgConfig.setDeletedOpacity(0); check(WgtgConfig.deletedOpacity == 20);
+                        WgtgConfig.setDeletedOpacity(200); check(WgtgConfig.deletedOpacity == 100);
+                        WgtgConfig.setAutoBold(true); check(WgtgConfig.chatFormat(0, 7) == 1);
+                        WgtgConfig.setChatFormat(0, 7, 0); check(WgtgConfig.chatFormat(0, 7) == 0);
+                        check(WgtgConfig.chatFormat(1, 7) == 1 && WgtgConfig.chatFormat(0, 8) == 1);
+                        WgtgConfig.setChatFormat(0, 7, 4); check(WgtgConfig.chatFormat(0, 7) == 4);
+                        WgtgConfig.setChatFormat(0, 7, -1); check(WgtgConfig.chatFormat(0, 7) == 1);
+                        for(int style=1; style<=6; style++) for(boolean cancel : new boolean[]{false,true}) {
                             AnimationChecks a = new AnimationChecks(); ChatMessageCell c = new ChatMessageCell();
                             var h = new RecyclerView.ViewHolder(c); WgtgConfig.setMessageTransition(style);
                             a.activity.animatingMessageObjects.add(c.message);
                             check(a.animateWgtgAdd(h) && a.starts==1 && c.params.messageEntering && c.alpha==0);
-                            check(c.y==(style==2?24:0) && c.sx==(style==3?0.94f:1f));
+                            check(c.y==(style==4?-24:style==2||style==6?24:0) && c.sx==(style==5?1.06f:style==3||style==6?0.94f:1f));
+                            check(c.animator.duration == (style==1?180:240));
                             check(!a.activity.animatingMessageObjects.contains(c.message));
                             c.animator.finish(cancel);
                             check(c.alpha==1 && c.y==0 && c.sx==1 && c.sy==1 && !c.params.messageEntering);
                             check(a.finishes==1 && a.finishedBatches==1 && a.mAddAnimations.isEmpty() && c.animator.listener==null);
                             a.wgtgChatTransitionStyle=style;
-                            a.applyWgtgChatTransition(c,1); check(c.x==0 && c.y==(style==2?32:0) && c.sx==(style==3?0.96f:1));
+                            a.applyWgtgChatTransition(c,1); check(c.x==0 && c.y==(style==4?-32:style==2||style==6?32:0) && c.sx==(style==5?1.04f:style==3||style==6?0.96f:1));
                             a.applyWgtgChatTransition(c,0); check(c.x==0 && c.y==0 && c.sx==1 && c.sy==1);
                         }
                         AnimationChecks a = new AnimationChecks(); WgtgConfig.setChatTransition(3);
@@ -139,6 +150,13 @@ class TestWgtgTransitions {
                         check(a.animateWgtgAdd(new RecyclerView.ViewHolder(c)) && c.sx==1); c.animator.finish(true);
                         LiteMode.enabled=true; c.group=new Object();
                         check(a.animateWgtgAdd(new RecyclerView.ViewHolder(c)) && c.sx==1); c.animator.finish(false);
+                        for(int style : new int[]{3,5,6}) {
+                            WgtgConfig.setMessageTransition(style); WgtgConfig.setChatTransition(style);
+                            check(a.animateWgtgAdd(new RecyclerView.ViewHolder(c)) && c.sx==1 && c.y==0); c.animator.finish(true);
+                            SharedConfig.performance=0;
+                            check(a.getWgtgChatTransition(new ChatActivity())==1);
+                            SharedConfig.performance=1;
+                        }
                         SharedConfig.enabled=false; check(a.getWgtgChatTransition(new ChatActivity())==0);
                         SharedConfig.enabled=true; AndroidUtilities.duration=0; check(a.getWgtgChatTransition(new ChatActivity())==0);
                         for(int disabled=0; disabled<3; disabled++) {
@@ -159,6 +177,6 @@ class TestWgtgTransitions {
                 loader.loadClass("AnimationChecks").getMethod("run").invoke(null);
             }
         }
-        System.out.println("PASS: production transition methods compile; three styles, completion/cancellation, animator callbacks, navigation endpoints, all disable controls, reduced-motion fallbacks, saved settings and bounds");
+        System.out.println("PASS: six transition styles, completion/cancellation, callbacks, navigation endpoints, disable controls, reduced-motion fallbacks, duration/opacity bounds and per-chat/account formatting preferences");
     }
 }

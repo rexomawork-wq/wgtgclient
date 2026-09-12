@@ -145,6 +145,7 @@ public class SimpleTextView extends View implements Drawable.Callback {
     public SimpleTextView(Context context) {
         super(context);
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setTypeface(org.telegram.messenger.WgtgFontConfig.resolve(null));
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
     }
 
@@ -300,7 +301,7 @@ public class SimpleTextView extends View implements Drawable.Callback {
     }
 
     public void setTypeface(Typeface typeface) {
-        textPaint.setTypeface(typeface);
+        textPaint.setTypeface(org.telegram.messenger.WgtgFontConfig.resolve(typeface));
     }
 
     public int getSideDrawablesSize() {

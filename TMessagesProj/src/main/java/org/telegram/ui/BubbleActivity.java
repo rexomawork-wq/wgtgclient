@@ -135,6 +135,8 @@ public class BubbleActivity extends BasePermissionsActivity implements INavigati
             }
             actionBarLayout.showLastFragment();
 
+            if (actionBarLayout.getFragmentStack().isEmpty()) finish();
+
             NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.passcodeDismissed, view);
         });
     }

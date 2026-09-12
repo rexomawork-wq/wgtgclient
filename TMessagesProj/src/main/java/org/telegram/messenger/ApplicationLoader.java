@@ -332,6 +332,7 @@ public class ApplicationLoader extends Application {
             applicationContext = getApplicationContext();
         }
 
+        WgtgFontConfig.install(this);
         NativeLoader.initNativeLibs(ApplicationLoader.applicationContext);
 
         try {

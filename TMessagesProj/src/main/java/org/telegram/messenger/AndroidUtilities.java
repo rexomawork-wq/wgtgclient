@@ -265,10 +265,10 @@ public class AndroidUtilities {
             if (SharedConfig.useSystemBoldFont && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 mediumTypeface = Typeface.create(null, 500, false);
             } else {
-                mediumTypeface = getTypeface(TYPEFACE_ROBOTO_MEDIUM);
+                mediumTypeface = getTypefaceOriginal(TYPEFACE_ROBOTO_MEDIUM);
             }
         }
-        return mediumTypeface;
+        return WgtgFontConfig.override(mediumTypeface, Typeface.BOLD);
     }
 
     private static final Hashtable<String, Typeface> typefaceCache = new Hashtable<>();
@@ -2391,6 +2391,12 @@ public class AndroidUtilities {
     }
 
     public static Typeface getTypeface(String assetPath) {
+        Typeface original = getTypefaceOriginal(assetPath);
+        int style = WgtgFontConfig.assetStyle(assetPath);
+        return style < 0 ? original : WgtgFontConfig.override(original, style);
+    }
+
+    private static Typeface getTypefaceOriginal(String assetPath) {
         synchronized (typefaceCache) {
             if (!typefaceCache.containsKey(assetPath)) {
                 try {

@@ -1817,8 +1817,10 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
 
     private void applyWgtgChatTransition(View view, float hidden) {
         view.setTranslationX(wgtgChatTransitionStyle == WgtgConfig.TRANSITION_DEFAULT ? dp(48) * hidden : 0f);
-        view.setTranslationY(wgtgChatTransitionStyle == WgtgConfig.TRANSITION_SLIDE ? dp(32) * hidden : 0f);
-        float scale = wgtgChatTransitionStyle == WgtgConfig.TRANSITION_SCALE ? 1f - 0.04f * hidden : 1f;
+        view.setTranslationY(wgtgChatTransitionStyle == WgtgConfig.TRANSITION_DROP ? -dp(32) * hidden
+                : wgtgChatTransitionStyle == WgtgConfig.TRANSITION_SLIDE || wgtgChatTransitionStyle == WgtgConfig.TRANSITION_LIFT ? dp(32) * hidden : 0f);
+        float scale = wgtgChatTransitionStyle == WgtgConfig.TRANSITION_ZOOM ? 1f + 0.04f * hidden
+                : wgtgChatTransitionStyle == WgtgConfig.TRANSITION_SCALE || wgtgChatTransitionStyle == WgtgConfig.TRANSITION_LIFT ? 1f - 0.04f * hidden : 1f;
         view.setScaleX(scale);
         view.setScaleY(scale);
     }
@@ -1828,7 +1830,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
             return WgtgConfig.TRANSITION_DEFAULT;
         }
         int style = WgtgConfig.chatTransition;
-        if (style == WgtgConfig.TRANSITION_SCALE && (SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_LOW
+        if ((style == WgtgConfig.TRANSITION_SCALE || style >= WgtgConfig.TRANSITION_ZOOM) && (SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_LOW
                 || !LiteMode.isEnabled(LiteMode.FLAG_CHAT_SCALE))) {
             return WgtgConfig.TRANSITION_FADE;
         }
@@ -1860,7 +1862,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                 lastFrameTime = newTime;
                 float duration = preview && open ? 190.0f : 150.0f;
                 if (!preview && wgtgChatTransitionStyle != WgtgConfig.TRANSITION_DEFAULT) {
-                    duration = 220f * Math.max(0.01f, AndroidUtilities.getAnimatorDurationScale());
+                    duration = WgtgConfig.animationDuration * Math.max(0.01f, AndroidUtilities.getAnimatorDurationScale());
                 }
                 animationProgress += dt / duration;
                 if (animationProgress > 1.0f) {
@@ -2866,7 +2868,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
             onCloseAnimationEnd();
         }
         checkBlackScreen("removeFragmentFromStack " + immediate);
-        if (useAlphaAnimations && fragmentsStack.size() == 1 && AndroidUtilities.isTablet()) {
+        if (!immediate && useAlphaAnimations && fragmentsStack.size() == 1 && AndroidUtilities.isTablet()) {
             closeLastFragment(true);
         } else {
             if (delegate != null && fragmentsStack.size() == 1 && AndroidUtilities.isTablet()) {

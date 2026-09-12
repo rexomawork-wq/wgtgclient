@@ -22,7 +22,10 @@ class TestWgtgFormatting {
             List<Path> paths = List.of("messenger/WgtgConfig.java", "messenger/WgtgMessageFormatting.java",
                     "messenger/SendMessagesHelper.java", "ui/WgtgSettingsActivity.java",
                     "ui/ActionBar/Theme.java", "ui/ActionBar/ActionBarLayout.java",
-                    "ui/recyclerview/ChatListItemAnimator.java").stream().map(root::resolve).toList();
+                    "ui/recyclerview/ChatListItemAnimator.java", "ui/WgtgThemeBuilderActivity.java",
+                    "ui/WgtgDeletedMessagesActivity.java", "ui/WgtgPlaylistActivity.java",
+                    "ui/Components/ChatActivityEnterView.java", "ui/LauncherIconController.java",
+                    "ui/Components/WgtgAccountPicker.java", "ui/Components/AlertsCreator.java").stream().map(root::resolve).toList();
             DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
             JavacTask parser = (JavacTask) compiler.getTask(null, manager, diagnostics, List.of("-proc:none"), null,
                     manager.getJavaFileObjectsFromPaths(paths));
@@ -41,6 +44,9 @@ class TestWgtgFormatting {
                     public class TLRPC {
                         public static class MessageEntity { public int offset, length; }
                         public static class TL_messageEntityBold extends MessageEntity {}
+                        public static class TL_messageEntityItalic extends MessageEntity {}
+                        public static class TL_messageEntityCode extends MessageEntity {}
+                        public static class TL_messageEntitySpoiler extends MessageEntity {}
                     }
                     """));
             sources.add(source("FormattingChecks", """
@@ -77,6 +83,18 @@ class TestWgtgFormatting {
                             check(again.size() == formatted.size() && again.containsAll(formatted));
                             var all = new ArrayList<MessageEntity>(List.of(span(0, text.length())));
                             check(WgtgMessageFormatting.boldUnformatted(text, all).equals(all));
+                            check(WgtgMessageFormatting.formatUnformatted(text, original, 0) == original);
+                            for (int style=1; style<=4; style++) {
+                                var result = WgtgMessageFormatting.formatUnformatted(text, original, style);
+                                check(result.size()==6 && result.containsAll(original));
+                                Class<?> type = new Class<?>[]{TL_messageEntityBold.class, TL_messageEntityItalic.class,
+                                        TL_messageEntityCode.class, TL_messageEntitySpoiler.class}[style-1];
+                                for (var entity : result) if (!original.contains(entity)) {
+                                    check(type.isInstance(entity));
+                                    for (var old : original) check(entity.offset + entity.length <= old.offset || entity.offset >= old.offset + old.length);
+                                }
+                                check(WgtgMessageFormatting.formatUnformatted(text, result, style).equals(result));
+                            }
                         }
                     }
                     """));

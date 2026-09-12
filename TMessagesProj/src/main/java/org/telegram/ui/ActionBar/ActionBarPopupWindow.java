@@ -101,6 +101,12 @@ public class ActionBarPopupWindow extends PopupWindow {
     }
 
     public static class ActionBarPopupWindowLayout extends FrameLayout {
+        @Override
+        protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            org.telegram.messenger.WgtgFontConfig.watch(this);
+        }
+
         public final static int FLAG_USE_SWIPEBACK = 1;
         public final static int FLAG_SHOWN_FROM_BOTTOM = 2;
         public final static int FLAG_DONT_USE_SCROLLVIEW = 4;

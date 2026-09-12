@@ -20,6 +20,8 @@ public class WgtgSettingsActivity extends BaseFragment {
     private final ArrayList<LinearLayout> cards = new ArrayList<>();
     private TextView brand;
     private TextView subtitle;
+    private LinearLayout archiveSection;
+    private View alternatePasscodeRow;
 
     @Override
     public View createView(Context context) {
@@ -55,18 +57,29 @@ public class WgtgSettingsActivity extends BaseFragment {
                 WgtgConfig::setGhostMode);
         check(content, R.string.WgtgConfirmMedia, 0, WgtgConfig.confirmMedia, false,
                 WgtgConfig::setConfirmMedia);
+        alternatePasscodeRow = row(content, R.string.WgtgAlternatePasscode, false);
+        alternatePasscodeRow.setOnClickListener(v -> {
+            if (WgtgPasscode.canAccessArchive() && !SharedConfig.passcodeHash.isEmpty()) open(new WgtgAlternatePasscodeActivity());
+        });
         info(root, R.string.WgtgPrivacyInfo);
-        content = section(root, R.string.WgtgArchive);
+        archiveSection = new LinearLayout(context);
+        archiveSection.setOrientation(LinearLayout.VERTICAL);
+        root.addView(archiveSection);
+        content = section(archiveSection, R.string.WgtgArchive);
         check(content, R.string.WgtgPreserve, 0, WgtgConfig.preserveDeleted(currentAccount), true,
                 checked -> WgtgConfig.setPreserveDeleted(currentAccount, checked));
+        check(content, R.string.WgtgPreserveEdits, R.string.WgtgHistoryInfo, WgtgConfig.preserveEdits(currentAccount), true,
+                checked -> WgtgConfig.setPreserveEdits(currentAccount, checked));
         TextSettingsCell archive = row(content, R.string.WgtgArchive, false);
-        archive.setOnClickListener(v -> open(new WgtgDeletedMessagesActivity()));
-        info(root, R.string.WgtgArchiveInfo);
+        archive.setOnClickListener(v -> { if (WgtgPasscode.canAccessArchive()) open(new WgtgDeletedMessagesActivity()); });
+        info(archiveSection, R.string.WgtgArchiveInfo);
+        slider(content, R.string.WgtgDeletedOpacity, WgtgConfig.deletedOpacity, 20, 100, "%", WgtgConfig::setDeletedOpacity);
         content = section(root, R.string.WgtgPersonalization);
         TextSettingsCell theme = row(content, R.string.WgtgBlackTheme, true);
         String themeKey = Theme.getActiveTheme().getKey();
         int[] paletteNames = {R.string.WgtgBlackOrange, R.string.WgtgBlackPink, R.string.WgtgBlackMint,
-                R.string.WgtgBlackViolet, R.string.WgtgMidnightBlue, R.string.WgtgWarmLinen};
+                R.string.WgtgBlackViolet, R.string.WgtgMidnightBlue, R.string.WgtgWarmLinen,
+                R.string.WgtgForest, R.string.WgtgPlum, R.string.WgtgArctic, R.string.WgtgRose};
         CharSequence[] palettes = new CharSequence[paletteNames.length];
         String selectedTheme = LocaleController.getString(R.string.WgtgThemeOther);
         for (int i = 0; i < palettes.length; i++) {
@@ -90,6 +103,8 @@ public class WgtgSettingsActivity extends BaseFragment {
                                 .setPositiveButton(LocaleController.getString(R.string.OK), null).create());
                     }
                 }).create()));
+        row(content, R.string.WgtgThemeBuilder, true).setOnClickListener(v -> open(new WgtgThemeBuilderActivity()));
+        row(content, R.string.FontType, true).setOnClickListener(v -> open(new WgtgFontSettingsActivity()));
         TextSettingsCell icons = row(content, R.string.WgtgIcons, false);
         icons.setOnClickListener(v -> open(new WgtgIconSettingsActivity()));
         info(root, R.string.WgtgBlackThemeInfo);
@@ -103,9 +118,11 @@ public class WgtgSettingsActivity extends BaseFragment {
         check(content, R.string.WgtgSmoothMessages, R.string.WgtgSmoothMessagesInfo,
                 WgtgConfig.smoothMessages, true, WgtgConfig::setSmoothMessages);
         transitionRow(content, R.string.WgtgMessageTransitionStyle, WgtgConfig.messageTransition, WgtgConfig::setMessageTransition);
+        slider(content, R.string.WgtgAnimationDuration, WgtgConfig.animationDuration, 120, 500, " ms", WgtgConfig::setAnimationDuration);
         content = section(root, R.string.WgtgMessagesSection);
         check(content, R.string.WgtgAutoBold, R.string.WgtgAutoBoldInfo,
                 WgtgConfig.autoBold, false, WgtgConfig::setAutoBold);
+        info(root, R.string.WgtgChatFormatInfo);
         content = section(root, R.string.WgtgExtrasSection);
         TextSettingsCell plugins = row(content, R.string.WgtgPlugins, true);
         plugins.setOnClickListener(v -> open(new WgtgPluginsActivity()));
@@ -123,7 +140,19 @@ public class WgtgSettingsActivity extends BaseFragment {
             }
         }
         updateCardColors();
+        updatePrivacyVisibility();
         return fragmentView;
+    }
+
+    public void updatePrivacyVisibility() {
+        boolean allowed = WgtgPasscode.canAccessArchive();
+        if (archiveSection != null) archiveSection.setVisibility(allowed ? View.VISIBLE : View.GONE);
+        if (alternatePasscodeRow != null) alternatePasscodeRow.setVisibility(allowed && !SharedConfig.passcodeHash.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    @Override public void onResume() {
+        super.onResume();
+        updatePrivacyVisibility();
     }
 
     private LinearLayout section(LinearLayout root, int title) {
@@ -205,7 +234,8 @@ public class WgtgSettingsActivity extends BaseFragment {
     private void transitionRow(LinearLayout content, int title, int selected, java.util.function.IntConsumer onChange) {
         CharSequence[] styles = {LocaleController.getString(R.string.WgtgTransitionDefault),
                 LocaleController.getString(R.string.WgtgTransitionFade), LocaleController.getString(R.string.WgtgTransitionSlide),
-                LocaleController.getString(R.string.WgtgTransitionScale)};
+                LocaleController.getString(R.string.WgtgTransitionScale), LocaleController.getString(R.string.WgtgTransitionDrop),
+                LocaleController.getString(R.string.WgtgTransitionZoom), LocaleController.getString(R.string.WgtgTransitionLift)};
         TextSettingsCell cell = row(content, title, true);
         cell.setTextAndValue(LocaleController.getString(title), styles[selected].toString(), true);
         cell.setOnClickListener(v -> showDialog(new AlertDialog.Builder(content.getContext())
@@ -220,6 +250,25 @@ public class WgtgSettingsActivity extends BaseFragment {
         cell.setText(LocaleController.getString(title));
         cell.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         content.addView(cell);
+    }
+
+    static void slider(LinearLayout content, int title, int value, int min, int max, String unit, java.util.function.IntConsumer onChange) {
+        TextSettingsCell label = row(content, title, false);
+        label.setTextAndValue(LocaleController.getString(title), value + unit, false);
+        android.widget.SeekBar slider = new android.widget.SeekBar(content.getContext());
+        slider.setMax(max - min);
+        slider.setProgress(value - min);
+        slider.setContentDescription(LocaleController.getString(title));
+        slider.setPadding(AndroidUtilities.dp(20), 0, AndroidUtilities.dp(20), 0);
+        content.addView(slider, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(48)));
+        slider.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            public void onProgressChanged(android.widget.SeekBar bar, int progress, boolean fromUser) {
+                label.setTextAndValue(LocaleController.getString(title), (progress + min) + unit, false);
+                if (fromUser) onChange.accept(progress + min);
+            }
+            public void onStartTrackingTouch(android.widget.SeekBar bar) {}
+            public void onStopTrackingTouch(android.widget.SeekBar bar) {}
+        });
     }
 
     static TextInfoPrivacyCell info(LinearLayout content, int text) {

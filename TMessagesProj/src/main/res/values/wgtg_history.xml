@@ -1,0 +1,7 @@
+<resources>
+    <string name="WgtgPreserveEdits">Save message edit history</string>
+    <string name="WgtgHistoryInfo">Saves locally cached text, captions and available files before edits replace them. Includes local edits, even if sending fails. Secret and expiring messages are excluded. Earlier versions from before this was enabled cannot be recovered. View edit history using the archive type filter. Turning this off keeps saved versions; clearing the archive removes them.</string>
+    <string name="WgtgEditHistory">Edit history</string>
+    <string name="WgtgPreviousVersion">Before edit</string>
+    <string name="WgtgDeletedOnly">Deleted messages</string>
+</resources>

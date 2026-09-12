@@ -165,6 +165,8 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
 
     @Override
     public boolean onFragmentCreate() {
+        if (org.telegram.messenger.WgtgPasscode.isRestricted() && type != TYPE_ENTER_CODE_TO_MANAGE_SETTINGS
+                && !SharedConfig.passcodeHash.isEmpty()) return false;
         super.onFragmentCreate();
         updateRows();
         if (type == TYPE_MANAGE_CODE_SETTINGS) {
@@ -280,6 +282,8 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
                                 .setMessage(LocaleController.getString(R.string.DisablePasscodeConfirmMessage))
                                 .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
                                 .setPositiveButton(LocaleController.getString(R.string.DisablePasscodeTurnOff), (dialog, which) -> {
+                                    if (org.telegram.messenger.WgtgPasscode.isRestricted()) return;
+                                    org.telegram.messenger.WgtgPasscode.clearCredential();
                                     SharedConfig.passcodeHash = "";
                                     SharedConfig.appLocked = false;
                                     SharedConfig.saveConfig();
@@ -945,6 +949,8 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
             }
 
             boolean isFirst = SharedConfig.passcodeHash.isEmpty();
+            if (org.telegram.messenger.WgtgPasscode.isRestricted() && !isFirst) return;
+            org.telegram.messenger.WgtgPasscode.clearCredential();
             try {
                 SharedConfig.passcodeSalt = new byte[16];
                 Utilities.random.nextBytes(SharedConfig.passcodeSalt);
@@ -1010,6 +1016,7 @@ public class PasscodeActivity extends BaseFragment implements NotificationCenter
                 return;
             }
             SharedConfig.badPasscodeTries = 0;
+            if (!org.telegram.messenger.WgtgPasscode.normalCodeAccepted()) { onPasscodeError(); return; }
             SharedConfig.saveConfig();
 
             passwordEditText.clearFocus();

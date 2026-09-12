@@ -859,6 +859,7 @@ public class SharedConfig {
     }
 
     public static void clearConfig() {
+        WgtgPasscode.clearCredential();
         saveIncomingPhotos = false;
         appLocked = false;
         passcodeType = PASSCODE_TYPE_PIN;

@@ -7704,26 +7704,11 @@ public class AlertsCreator {
         final Runnable dismissRunnable = builder.getDismissRunnable();
         final AlertDialog[] alertDialog = new AlertDialog[1];
 
-        final LinearLayout linearLayout = new LinearLayout(parentActivity);
-        linearLayout.setOrientation(LinearLayout.VERTICAL);
-        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
-            TLRPC.User u = UserConfig.getInstance(a).getCurrentUser();
-            if (u != null) {
-                AccountSelectCell cell = new AccountSelectCell(parentActivity, false);
-                cell.setAccount(a, false);
-                cell.setPadding(dp(14), 0, dp(14), 0);
-                cell.setBackgroundDrawable(Theme.getSelectorDrawable(false));
-                linearLayout.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 50));
-                cell.setOnClickListener(v -> {
-                    if (alertDialog[0] != null) {
-                        alertDialog[0].setOnDismissListener(null);
-                    }
-                    dismissRunnable.run();
-                    AccountSelectCell cell1 = (AccountSelectCell) v;
-                    delegate.didSelectAccount(cell1.getAccountNumber());
-                });
-            }
-        }
+        WgtgAccountPicker linearLayout = new WgtgAccountPicker(parentActivity, account -> {
+            if (alertDialog[0] != null) alertDialog[0].setOnDismissListener(null);
+            dismissRunnable.run();
+            delegate.didSelectAccount(account);
+        });
 
         builder.setTitle(LocaleController.getString(R.string.SelectAccount));
         builder.setView(linearLayout);

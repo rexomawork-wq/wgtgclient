@@ -9,7 +9,11 @@ public final class WgtgMessageFormatting {
     private WgtgMessageFormatting() {}
 
     public static ArrayList<TLRPC.MessageEntity> boldUnformatted(String text, ArrayList<TLRPC.MessageEntity> entities) {
-        if (text == null || text.isEmpty()) {
+        return formatUnformatted(text, entities, 1);
+    }
+
+    public static ArrayList<TLRPC.MessageEntity> formatUnformatted(String text, ArrayList<TLRPC.MessageEntity> entities, int style) {
+        if (text == null || text.isEmpty() || style < 1 || style > 4) {
             return entities;
         }
         ArrayList<TLRPC.MessageEntity> result = entities == null ? new ArrayList<>() : new ArrayList<>(entities);
@@ -22,7 +26,9 @@ public final class WgtgMessageFormatting {
             TLRPC.MessageEntity entity = i < count ? result.get(i) : null;
             int start = entity == null ? text.length() : Math.max(0, Math.min(text.length(), entity.offset));
             if (start > cursor) {
-                TLRPC.TL_messageEntityBold bold = new TLRPC.TL_messageEntityBold();
+                TLRPC.MessageEntity bold = style == 2 ? new TLRPC.TL_messageEntityItalic()
+                        : style == 3 ? new TLRPC.TL_messageEntityCode()
+                        : style == 4 ? new TLRPC.TL_messageEntitySpoiler() : new TLRPC.TL_messageEntityBold();
                 bold.offset = cursor;
                 bold.length = start - cursor;
                 result.add(bold);
