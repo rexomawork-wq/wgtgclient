@@ -9317,6 +9317,17 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public void deleteMessages(ArrayList<Integer> messages, ArrayList<Long> randoms, TLRPC.EncryptedChat encryptedChat, long dialogId, boolean forAll, int mode, boolean cacheOnly, long taskId, TLObject taskRequest, int topicId, boolean movedToScheduled, int movedToScheduledMessageId) {
+        if (taskId == 0 && mode == 0 && messages != null) {
+            ArrayList<Integer> serverMessages = new ArrayList<>();
+            for (int id : messages) {
+                if (WgtgArchive.isDeleted(currentAccount, dialogId, id)) {
+                    deletePreservedMessage(dialogId, id);
+                } else {
+                    serverMessages.add(id);
+                }
+            }
+            messages = serverMessages;
+        }
         final boolean scheduled = mode == ChatActivity.MODE_SCHEDULED;
         final boolean quickReplies = mode == ChatActivity.MODE_QUICK_REPLIES;
         final boolean welcomeMessages = mode == ChatActivity.MODE_WELCOME_MESSAGES;
@@ -17598,14 +17609,19 @@ public class MessagesController extends BaseController implements NotificationCe
         });
     }
 
+    public void deletePreservedMessage(long dialogId, int messageId) {
+        getMessagesStorage().deletePreservedMessage(dialogId, messageId, WgtgArchive.channelId(currentAccount, dialogId, messageId));
+    }
+
     protected void deleteMessagesByPush(long dialogId, ArrayList<Integer> ids, long channelId) {
         getMessagesStorage().getStorageQueue().postRunnable(() -> {
             WgtgArchive.capture(currentAccount, dialogId, ids);
+            ArrayList<Integer> removedIds = WgtgArchive.excludingDeleted(currentAccount, dialogId, ids);
             AndroidUtilities.runOnUIThread(() -> {
                 getNotificationCenter().postNotificationName(NotificationCenter.messagesDeleted, ids, channelId, false);
                 if (channelId == 0) {
-                    for (int b = 0, size2 = ids.size(); b < size2; b++) {
-                        Integer id = ids.get(b);
+                    for (int b = 0, size2 = removedIds.size(); b < size2; b++) {
+                        Integer id = removedIds.get(b);
                         MessageObject obj = dialogMessagesByIds.get(id);
                         if (obj != null) {
                             obj.deleted = true;
@@ -17616,8 +17632,8 @@ public class MessagesController extends BaseController implements NotificationCe
                     if (objs != null) {
                         for (int i = 0; i < objs.size(); ++i) {
                             MessageObject obj = objs.get(i);
-                            for (int b = 0, size2 = ids.size(); b < size2; b++) {
-                                if (obj.getId() == ids.get(b)) {
+                            for (int b = 0, size2 = removedIds.size(); b < size2; b++) {
+                                if (obj.getId() == removedIds.get(b)) {
                                     obj.deleted = true;
                                     break;
                                 }
@@ -17627,8 +17643,10 @@ public class MessagesController extends BaseController implements NotificationCe
                 }
             });
             getMessagesStorage().deletePushMessages(dialogId, ids);
-            ArrayList<Long> dialogIds = getMessagesStorage().markMessagesAsDeleted(dialogId, ids, false, true, 0, 0);
-            getMessagesStorage().updateDialogsWithDeletedMessages(dialogId, channelId, ids, dialogIds);
+            if (!removedIds.isEmpty()) {
+                ArrayList<Long> dialogIds = getMessagesStorage().markMessagesAsDeleted(dialogId, removedIds, false, true, 0, 0);
+                getMessagesStorage().updateDialogsWithDeletedMessages(dialogId, channelId, removedIds, dialogIds);
+            }
         });
     }
 
@@ -21009,6 +21027,13 @@ public class MessagesController extends BaseController implements NotificationCe
         LongSparseArray<ArrayList<Integer>> scheduledDeletedMessagesFinal = scheduledDeletedMessages;
         LongSparseArray<ArrayList<Integer>> scheduledDeletedMessagesSentFinal = scheduledDeletedMessagesSent;
         LongSparseIntArray clearHistoryMessagesFinal = clearHistoryMessages;
+        getMessagesStorage().getStorageQueue().postRunnable(() -> {
+            if (deletedMessagesFinal != null) {
+                for (int a = 0; a < deletedMessagesFinal.size(); a++) {
+                    WgtgArchive.capture(currentAccount, deletedMessagesFinal.keyAt(a), deletedMessagesFinal.valueAt(a));
+                }
+            }
+        });
         getMessagesStorage().getStorageQueue().postRunnable(() -> AndroidUtilities.runOnUIThread(() -> {
             int updateMask = 0;
             if (markAsReadMessagesInboxFinal != null || markAsReadMessagesOutboxFinal != null) {
@@ -21099,6 +21124,7 @@ public class MessagesController extends BaseController implements NotificationCe
                         continue;
                     }
                     getNotificationCenter().postNotificationName(NotificationCenter.messagesDeleted, arrayList, -dialogId, false);
+                    arrayList = WgtgArchive.excludingDeleted(currentAccount, dialogId, arrayList);
                     if (dialogId == 0) {
                         for (int b = 0, size2 = arrayList.size(); b < size2; b++) {
                             Integer id = arrayList.get(b);
@@ -21216,9 +21242,11 @@ public class MessagesController extends BaseController implements NotificationCe
                 long key = deletedMessages.keyAt(a);
                 ArrayList<Integer> arrayList = deletedMessages.valueAt(a);
                 getMessagesStorage().getStorageQueue().postRunnable(() -> {
-                    WgtgArchive.capture(currentAccount, key, arrayList);
-                    ArrayList<Long> dialogIds = getMessagesStorage().markMessagesAsDeleted(key, arrayList, false, true, 0, 0);
-                    getMessagesStorage().updateDialogsWithDeletedMessages(key, -key, arrayList, dialogIds);
+                    ArrayList<Integer> removedIds = WgtgArchive.excludingDeleted(currentAccount, key, arrayList);
+                    if (!removedIds.isEmpty()) {
+                        ArrayList<Long> dialogIds = getMessagesStorage().markMessagesAsDeleted(key, removedIds, false, true, 0, 0);
+                        getMessagesStorage().updateDialogsWithDeletedMessages(key, -key, removedIds, dialogIds);
+                    }
                 });
             }
         }

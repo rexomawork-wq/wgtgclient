@@ -15,7 +15,6 @@ import org.json.JSONObject;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
-import org.telegram.messenger.Utilities;
 import org.telegram.messenger.WgtgPluginsController;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -52,7 +51,7 @@ public class WgtgPluginsActivity extends BaseFragment {
         if (lastResult != null) content.addView(WgtgSettingsActivity.text(content.getContext(), lastResult));
         content.addView(WgtgSettingsActivity.text(content.getContext(), LocaleController.getString(R.string.WgtgPluginsWarning)));
         TextView install = WgtgSettingsActivity.text(content.getContext(), LocaleController.getString(R.string.WgtgInstallPlugin));
-        install.setOnClickListener(v -> showInstallWarning());
+        install.setOnClickListener(v -> choosePlugin());
         content.addView(install);
         if (!WgtgPluginsController.isReady()) {
             String error = WgtgPluginsController.getStartupError();
@@ -100,32 +99,20 @@ public class WgtgPluginsActivity extends BaseFragment {
         }
     }
 
-    private void showInstallWarning() {
-        new AlertDialog.Builder(content.getContext())
-            .setTitle(LocaleController.getString(R.string.WgtgInstallPlugin))
-            .setMessage(LocaleController.getString(R.string.WgtgPluginAccessWarning))
-            .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
-            .setPositiveButton(LocaleController.getString(R.string.Continue), (dialog, which) -> {
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("*/*");
-                intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/zip", "application/octet-stream", "text/x-python", "text/plain"});
-                startActivityForResult(intent, REQUEST_PLUGIN);
-            }).show();
+    private void choosePlugin() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/zip", "application/octet-stream", "text/x-python", "text/plain"});
+        startActivityForResult(intent, REQUEST_PLUGIN);
     }
 
     @Override
     public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
         if (requestCode != REQUEST_PLUGIN || resultCode != Activity.RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
-        TextView status = WgtgSettingsActivity.text(content.getContext(), LocaleController.getString(R.string.Loading));
-        content.addView(status);
-        Utilities.globalQueue.postRunnable(() -> {
-            String result;
-            try { result = LocaleController.getString(R.string.WgtgPluginInstalled) + ": " + WgtgPluginsController.install(uri); }
-            catch (Exception e) { result = LocaleController.getString(R.string.WgtgPluginError) + ": " + e.getMessage(); }
-            String finalResult = result;
-            AndroidUtilities.runOnUIThread(() -> { if (!destroyed) { lastResult = finalResult; redraw(); } });
+        org.telegram.ui.Components.WgtgPluginInstaller.show(getParentActivity(), uri, getResourceProvider(), () -> {
+            if (!destroyed) redraw();
         });
     }
 

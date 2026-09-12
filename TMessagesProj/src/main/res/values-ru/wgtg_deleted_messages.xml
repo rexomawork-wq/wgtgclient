@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="WgtgDeleteLocal">Удалить локальную копию</string>
+    <string name="WgtgDeleteLocalConfirm">Сообщение удалено из Telegram. Окончательно удалить его сохранённую копию с этого устройства?</string>
+</resources>

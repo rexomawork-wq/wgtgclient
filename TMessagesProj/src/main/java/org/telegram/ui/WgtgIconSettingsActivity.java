@@ -4,10 +4,7 @@ import android.content.Context;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.Switch;
-import android.widget.TextView;
 
-import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -31,28 +28,21 @@ public class WgtgIconSettingsActivity extends BaseFragment {
 
         ScrollView scroll = new ScrollView(context);
         scroll.setFillViewport(true);
-        scroll.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        scroll.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(content);
-        content.addView(new AppIconsSelectorCell(context, this, currentAccount),
+        WgtgSettingsActivity.header(content, R.string.WgtgIcons);
+        AppIconsSelectorCell selector = new AppIconsSelectorCell(context, this, currentAccount);
+        selector.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        content.addView(selector,
                 new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        int padding = AndroidUtilities.dp(20);
-        Switch notificationIcon = new Switch(context);
-        notificationIcon.setText(LocaleController.getString(R.string.WgtgNotificationIcon));
-        notificationIcon.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        notificationIcon.setPadding(padding, padding, padding, padding);
-        notificationIcon.setChecked(LauncherIconController.useWgtgNotificationIcon());
-        notificationIcon.setOnCheckedChangeListener((button, checked) -> LauncherIconController.setUseWgtgNotificationIcon(checked));
-        content.addView(notificationIcon, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        TextView info = new TextView(context);
-        info.setText(LocaleController.getString(R.string.WgtgNotificationIconInfo));
-        info.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
-        info.setTextSize(14);
-        info.setPadding(padding, 0, padding, padding);
-        content.addView(info);
+        WgtgSettingsActivity.info(content, R.string.WgtgIconsInfo);
+        WgtgSettingsActivity.check(content, R.string.WgtgNotificationIcon, 0,
+                LauncherIconController.useWgtgNotificationIcon(), false,
+                LauncherIconController::setUseWgtgNotificationIcon);
+        WgtgSettingsActivity.info(content, R.string.WgtgNotificationIconInfo);
         fragmentView = scroll;
         return fragmentView;
     }

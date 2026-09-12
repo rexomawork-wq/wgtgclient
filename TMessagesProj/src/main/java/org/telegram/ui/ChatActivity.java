@@ -1890,6 +1890,8 @@ public class ChatActivity extends BaseFragment implements
         @Override
         public boolean hasDoubleTap(View view, int position) {
             if (isQuickRepliesOrWelcomeMessagesMode()) return false;
+            if (view instanceof ChatMessageCell && !actionBar.isActionModeShowed() && !isInPreviewMode()
+                && org.telegram.ui.Components.WgtgPluginInstaller.isPlugin(((ChatMessageCell) view).getPrimaryMessageObject())) return true;
             String reactionStringSetting = getMediaDataController().getDoubleTapReaction();
             TLRPC.TL_availableReaction reaction = getMediaDataController().getReactionsMap().get(reactionStringSetting);
             if (reaction == null && (reactionStringSetting == null || !reactionStringSetting.startsWith("animated_"))) {
@@ -1915,6 +1917,13 @@ public class ChatActivity extends BaseFragment implements
 
         @Override
         public void onDoubleTap(View view, int position, float x, float y) {
+            if (view instanceof ChatMessageCell && !actionBar.isActionModeShowed() && !isInPreviewMode() && !isQuickRepliesOrWelcomeMessagesMode()) {
+                MessageObject pluginMessage = ((ChatMessageCell) view).getPrimaryMessageObject();
+                if (org.telegram.ui.Components.WgtgPluginInstaller.isPlugin(pluginMessage)) {
+                    org.telegram.ui.Components.WgtgPluginInstaller.openMessage(getParentActivity(), pluginMessage, themeDelegate);
+                    return;
+                }
+            }
             if (getParentActivity() == null || isSecretChat() || isInScheduleMode() || isInPreviewMode() || isQuickRepliesOrWelcomeMessagesMode()) {
                 return;
             }
@@ -22262,6 +22271,13 @@ public class ChatActivity extends BaseFragment implements
             }
             ArrayList<Integer> markAsDeletedMessages = (ArrayList<Integer>) args[0];
             long channelId = (Long) args[1];
+            if (!scheduled) {
+                ArrayList<Integer> removedMessages = org.telegram.messenger.WgtgArchive.excludingDeleted(currentAccount, channelId == 0 ? 0 : -channelId, markAsDeletedMessages);
+                if (removedMessages.size() != markAsDeletedMessages.size() && chatListView != null) {
+                    chatListView.invalidateViews();
+                }
+                markAsDeletedMessages = removedMessages;
+            }
             boolean update = args.length > 2 && (boolean) args[2];
             boolean sent = args.length > 3 && (boolean) args[3];
             int scheduledMessageId = args.length > 5 ? (int) args[5] : 0;
@@ -38919,6 +38935,19 @@ public class ChatActivity extends BaseFragment implements
 
     private class ChatMessageCellDelegate implements ChatMessageCell.ChatMessageCellDelegate {
         @Override
+        public void didPressDeletePreservedMessage(ChatMessageCell cell) {
+            MessageObject message = cell.getMessageObject();
+            if (message == null || !cell.isPreservedDeletedMessage() || getParentActivity() == null) return;
+            new AlertDialog.Builder(getParentActivity(), themeDelegate)
+                .setTitle(LocaleController.getString(R.string.WgtgDeleteLocal))
+                .setMessage(LocaleController.getString(R.string.WgtgDeleteLocalConfirm))
+                .setPositiveButton(LocaleController.getString(R.string.Delete), (dialog, which) ->
+                    getMessagesController().deletePreservedMessage(message.getDialogId(), message.getId()))
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+        }
+
+        @Override
         public boolean isReplyOrSelf() {
             return UserObject.isReplyUser(currentUser) || UserObject.isUserSelf(currentUser);
         }
@@ -41567,6 +41596,10 @@ public class ChatActivity extends BaseFragment implements
                     presentFragment(fragment);
                 }
             } else if (message.type == MessageObject.TYPE_FILE || message.type == MessageObject.TYPE_TEXT) {
+                if (org.telegram.ui.Components.WgtgPluginInstaller.isPlugin(message)) {
+                    org.telegram.ui.Components.WgtgPluginInstaller.openMessage(getParentActivity(), message, themeDelegate);
+                    return;
+                }
                 if (message.getDocumentName().toLowerCase().endsWith("attheme")) {
                     File locFile = null;
                     if (message.messageOwner.attachPath != null && message.messageOwner.attachPath.length() != 0) {

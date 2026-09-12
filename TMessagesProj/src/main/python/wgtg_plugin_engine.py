@@ -71,6 +71,7 @@ def _descriptors():
 
 def initialize(path):
     global root
+    for plugin_id in list(loaded): _unload(plugin_id)
     root = path; os.makedirs(root, exist_ok=True)
     state = _state()
     interrupted = state.pop("loading", None)
@@ -86,7 +87,7 @@ def _load(plugin_id, main, meta):
         if meta.get("requirements") or meta.get("requires"):
             raise NotImplementedError("External plugin dependencies are not supported")
         module_name = "wgtg_plugin_" + plugin_id
-        spec = importlib.util.spec_from_file_location(module_name, main)
+        spec = importlib.util.spec_from_file_location(module_name, main, submodule_search_locations=[os.path.dirname(main)])
         module = importlib.util.module_from_spec(spec); sys.modules[module_name] = module
         plugin_dir = os.path.dirname(main); sys.path.insert(0, plugin_dir)
         try: spec.loader.exec_module(module)
@@ -100,7 +101,7 @@ def _load(plugin_id, main, meta):
         loaded[plugin_id] = {"instance": instance, "meta": meta, "error": ""}
         instance.__init__()
         if hasattr(instance, "on_plugin_load"): instance.on_plugin_load()
-    except Exception:
+    except (Exception, SystemExit):
         error = traceback.format_exc()[-4000:]
         _unload(plugin_id)
         state = _state(); state["enabled"][plugin_id] = False; _write_json(_state_path(), state)
@@ -112,9 +113,11 @@ def _unload(plugin_id):
     item = loaded.pop(plugin_id, None)
     if item and item["instance"] and hasattr(item["instance"], "on_plugin_unload"):
         try: item["instance"].on_plugin_unload()
-        except Exception: traceback.print_exc()
+        except (Exception, SystemExit): traceback.print_exc()
     hooks[:] = [x for x in hooks if x[0] != plugin_id]; send_hooks[:] = [x for x in send_hooks if x[0] != plugin_id]
-    sys.modules.pop("wgtg_plugin_" + plugin_id, None)
+    module_name = "wgtg_plugin_" + plugin_id
+    for name in list(sys.modules):
+        if name == module_name or name.startswith(module_name + "."): sys.modules.pop(name, None)
 
 def list_plugins():
     state = _state(); result = []
@@ -130,7 +133,8 @@ def install(path):
     finally:
         shutil.rmtree(temp, ignore_errors=True)
 
-def _install(path, temp):
+def _prepare(path, temp):
+    if os.path.getsize(path) > 32 * 1024 * 1024: raise ValueError("Plugin is larger than 32 MB")
     if zipfile.is_zipfile(path):
         with zipfile.ZipFile(path) as archive:
             if len(archive.infolist()) > 2048 or sum(x.file_size for x in archive.infolist()) > 64 * 1024 * 1024: raise ValueError("Plugin archive is too large")
@@ -142,25 +146,43 @@ def _install(path, temp):
                 if item.filename.endswith((".so", ".whl", ".pyc")): raise ValueError("Binary plugin modules are not supported")
             archive.extractall(temp)
         main, meta = _project_info(temp); plugin_id = meta.get("id")
-        if not _valid_id(plugin_id): shutil.rmtree(temp); raise ValueError("Invalid plugin id")
-        destination = os.path.join(root, plugin_id)
     else:
         meta = _source_metadata(path); plugin_id = meta.get("id")
-        if not _valid_id(plugin_id): raise ValueError("Invalid plugin id")
-        destination = os.path.join(root, plugin_id)
         shutil.copyfile(path, os.path.join(temp, "main.py"))
-    _unload(plugin_id)
-    backup = destination + ".backup"
+    if not _valid_id(plugin_id): raise ValueError("Invalid plugin id")
+    if not isinstance(meta.get("name"), str) or not meta["name"].strip(): raise ValueError("Plugin name is required")
+    return plugin_id, meta
+
+def inspect_plugin(path):
+    temp = tempfile.mkdtemp(prefix=".inspect-", dir=root)
+    try:
+        plugin_id, meta = _prepare(path, temp)
+        result = {key: meta.get(key, "") for key in ("id", "name", "author", "description", "app_version", "sdk_version", "min_version", "requirements", "requires")}
+        result["version"] = str(meta.get("version", "1.0"))
+        result["installed_version"] = next((str(m.get("version", "1.0")) for pid, _, m in _descriptors() if pid == plugin_id), None)
+        return json.dumps(result, ensure_ascii=False)
+    finally:
+        shutil.rmtree(temp, ignore_errors=True)
+
+def _install(path, temp):
+    plugin_id, meta = _prepare(path, temp)
+    destination = os.path.join(root, plugin_id)
+    backup = os.path.join(root, ".backup-" + plugin_id)
     shutil.rmtree(backup, ignore_errors=True)
     if os.path.isdir(destination): os.replace(destination, backup)
-    try: os.replace(temp, destination)
+    replaced = False
+    try:
+        os.replace(temp, destination)
+        replaced = True
+        state = _state(); state["enabled"][plugin_id] = False; _write_json(_state_path(), state)
     except Exception:
+        if replaced: shutil.rmtree(destination)
         if os.path.isdir(backup): os.replace(backup, destination)
         raise
+    _unload(plugin_id)
     shutil.rmtree(backup, ignore_errors=True)
     legacy = os.path.join(root, plugin_id + ".py")
     if os.path.isfile(legacy): os.remove(legacy)
-    state = _state(); state["enabled"][plugin_id] = False; _write_json(_state_path(), state)
     return plugin_id
 
 def set_enabled(plugin_id, enabled):
@@ -234,7 +256,7 @@ def _serialized(function):
     def call(*args, **kwargs):
         with _lock: return function(*args, **kwargs)
     return call
-for _name in ("initialize", "install", "set_enabled", "uninstall", "list_plugins",
+for _name in ("initialize", "install", "inspect_plugin", "set_enabled", "uninstall", "list_plugins",
               "before_request", "before_send_message", "settings_rows", "set_setting_json",
               "get_settings", "get_setting", "set_setting", "replace_settings", "add_hook", "add_send_hook"):
     globals()[_name] = _serialized(globals()[_name])

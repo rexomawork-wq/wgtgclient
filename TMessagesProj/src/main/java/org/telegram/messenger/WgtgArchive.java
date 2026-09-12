@@ -12,6 +12,62 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 
 public final class WgtgArchive {
+    private static SharedPreferences deletedPrefs(int account) { return ApplicationLoader.applicationContext.getSharedPreferences("wgtg_deleted_" + account, 0); }
+
+    public static boolean isDeleted(int account, long dialog, int id) {
+        return deletedPrefs(account).getBoolean(dialog + "_" + id, false);
+    }
+
+    static long channelId(int account, long dialog, int id) {
+        return dialog < 0 && deletedPrefs(account).getLong("dialog_" + id, 0) != dialog ? -dialog : 0;
+    }
+
+    static String preservedIdsSql(int account, long dialog) {
+        String prefix = dialog + "_";
+        StringBuilder ids = new StringBuilder("0");
+        for (String key : deletedPrefs(account).getAll().keySet()) {
+            if (key.startsWith(prefix)) {
+                try {
+                    int id = Integer.parseInt(key.substring(prefix.length()));
+                    if (id > 0) ids.append(',').append(id);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return ids.toString();
+    }
+
+    public static ArrayList<Integer> excludingDeleted(int account, long dialog, ArrayList<Integer> ids) {
+        ArrayList<Integer> result = new ArrayList<>();
+        for (int id : ids) if (!isDeleted(account, dialog, id)) result.add(id);
+        return result;
+    }
+
+    // Called on the storage queue, after the database deletion has succeeded.
+    static void forget(int account, long dialog, int id) throws Exception {
+        SharedPreferences deleted = deletedPrefs(account);
+        SharedPreferences.Editor editor = deleted.edit().remove(dialog + "_" + id);
+        if (deleted.getLong("dialog_" + id, 0) == dialog) {
+            editor.remove("0_" + id).remove("dialog_" + id);
+        }
+        JSONArray archive = new JSONArray(prefs(account).getString("entries", "[]"));
+        for (int i = archive.length() - 1; i >= 0; i--) {
+            JSONObject item = archive.getJSONObject(i);
+            if (item.optLong("dialog") == dialog && item.optInt("mid") == id) {
+                String path = item.optString("path");
+                if (!path.isEmpty()) {
+                    File file = new File(path);
+                    if (file.exists() && !file.delete()) throw new IllegalStateException("Cannot delete archived media");
+                }
+                archive.remove(i);
+            }
+        }
+        if (!prefs(account).edit().putString("entries", archive.toString()).commit() || !editor.commit()) {
+            throw new IllegalStateException("Cannot persist local deletion");
+        }
+    }
+
+    static void resetDeleted(int account) { deletedPrefs(account).edit().clear().commit(); }
+
     public static class Entry { public long row; public String text, path, mime; }
     private static SharedPreferences prefs(int account) { return ApplicationLoader.applicationContext.getSharedPreferences("wgtg_archive_" + account, 0); }
     private static File directory(int account) {
@@ -21,12 +77,12 @@ public final class WgtgArchive {
     }
 
     public static void capture(int account, long dialog, ArrayList<Integer> ids) {
-        if (!WgtgConfig.preserveDeleted(account) || ids.isEmpty()) return;
+        if (!WgtgConfig.preserveDeleted(account) || ids == null || ids.isEmpty()) return;
         try {
             JSONArray archive = new JSONArray(prefs(account).getString("entries", "[]"));
             for (int id : ids) {
                 SQLiteCursor cursor = MessagesStorage.getInstance(account).getDatabase().queryFinalized(
-                    "SELECT uid, data FROM messages_v2 WHERE mid = ? AND " + (dialog == 0 ? "is_channel = 0" : "uid = " + dialog), id);
+                    "SELECT uid, data, ttl FROM messages_v2 WHERE mid = ? AND " + (dialog == 0 ? "is_channel = 0" : "uid = " + dialog), id);
                 try {
                     while (cursor.next()) {
                         long did = cursor.longValue(0);
@@ -37,7 +93,14 @@ public final class WgtgArchive {
                             message = TLRPC.Message.TLdeserialize(buffer, buffer.readInt32(false), false);
                             if (message != null) message.readAttachPath(buffer, UserConfig.getInstance(account).getClientUserId());
                         } finally { buffer.reuse(); }
-                        if (message == null || message.out || message.action != null || message.ttl_period != 0 || DialogObject.isEncryptedDialog(did)) continue;
+                        if (message == null || id <= 0 || message.action != null || cursor.intValue(2) != 0
+                            || message.ttl != 0 || message.ttl_period != 0 || message.expire_date != 0 || MessageObject.isEphemeral(message)
+                            || (message.media != null && message.media.ttl_seconds != 0) || DialogObject.isEncryptedDialog(did)) continue;
+                        SharedPreferences.Editor deleted = deletedPrefs(account).edit().putBoolean(did + "_" + id, true);
+                        if (message.peer_id == null || message.peer_id.channel_id == 0) {
+                            deleted.putBoolean("0_" + id, true).putLong("dialog_" + id, did);
+                        }
+                        if (!deleted.commit()) throw new IllegalStateException("Cannot persist deleted message marker");
                         boolean duplicate = false;
                         for (int n = 0; n < archive.length(); n++) if (archive.getJSONObject(n).optLong("dialog") == did && archive.getJSONObject(n).optInt("mid") == id) { duplicate = true; break; }
                         if (duplicate) continue;

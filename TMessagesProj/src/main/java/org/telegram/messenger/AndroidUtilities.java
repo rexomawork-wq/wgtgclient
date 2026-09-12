@@ -4270,6 +4270,10 @@ public class AndroidUtilities {
 
     public static boolean openForView(File f, String fileName, String mimeType, final Activity activity, Theme.ResourcesProvider resourcesProvider, boolean restrict) {
         if (f != null && f.exists()) {
+            if (fileName != null && fileName.toLowerCase(java.util.Locale.ROOT).endsWith(".plugin")) {
+                org.telegram.ui.Components.WgtgPluginInstaller.show(activity, Uri.fromFile(f), resourcesProvider, null);
+                return true;
+            }
             String realMimeType = null;
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);

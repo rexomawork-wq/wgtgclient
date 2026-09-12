@@ -46,8 +46,14 @@ public final class WgtgPluginsController {
     }
 
     public static String install(Uri uri) throws Exception {
+        File incoming = prepareInstall(uri);
+        try { return installPrepared(incoming); }
+        finally { incoming.delete(); }
+    }
+
+    public static File prepareInstall(Uri uri) throws Exception {
         if (!ready) throw new IllegalStateException(startupError == null ? "Python runtime is starting" : startupError);
-        File incoming = new File(pluginsDir(), ".incoming.plugin");
+        File incoming = File.createTempFile(".incoming-", ".plugin", pluginsDir());
         try (InputStream input = ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri);
              FileOutputStream output = new FileOutputStream(incoming)) {
             if (input == null) throw new IllegalArgumentException("Cannot open plugin");
@@ -57,9 +63,19 @@ public final class WgtgPluginsController {
                 if (size > 32L * 1024 * 1024) throw new IllegalArgumentException("Plugin is larger than 32 MB");
                 output.write(buffer, 0, count);
             }
+        } catch (Exception e) {
+            incoming.delete();
+            throw e;
         }
-        try { return module().callAttr("install", incoming.getAbsolutePath()).toJava(String.class); }
-        finally { incoming.delete(); }
+        return incoming;
+    }
+
+    public static String inspect(File incoming) {
+        return module().callAttr("inspect_plugin", incoming.getAbsolutePath()).toJava(String.class);
+    }
+
+    public static String installPrepared(File incoming) {
+        return module().callAttr("install", incoming.getAbsolutePath()).toJava(String.class);
     }
 
     public static void setEnabled(String id, boolean enabled) {

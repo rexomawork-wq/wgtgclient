@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="WgtgIcons">Иконки приложения</string>
+    <string name="WgtgIconNight">Ночь</string>
+    <string name="WgtgIconRgb">Спектр</string>
+    <string name="WgtgIconJade">Нефрит</string>
+    <string name="WgtgIconSunset">Закат</string>
+    <string name="WgtgIconsInfo">Листайте, чтобы увидеть все варианты. Все иконки доступны без Premium. Выбор действует для всего приложения; обновление иконки на рабочем столе может занять некоторое время.</string>
+    <string name="WgtgNotificationIcon">Иконка WGTG в уведомлениях</string>
+    <string name="WgtgNotificationIconInfo">Показывать монохромную W в новых уведомлениях о сообщениях. Выключите для стандартной иконки. Цвет задаёт Android.</string>
+</resources>

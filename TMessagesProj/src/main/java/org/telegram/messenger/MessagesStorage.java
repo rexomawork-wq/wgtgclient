@@ -850,6 +850,7 @@ public class MessagesStorage extends BaseController {
     public void cleanup(boolean isLogin) {
         storageQueue.postRunnable(() -> {
             WgtgConfig.setPreserveDeleted(currentAccount, false);
+            WgtgArchive.resetDeleted(currentAccount);
             try { WgtgArchive.clear(currentAccount); } catch (Exception e) { FileLog.e(e); }
             cleanupInternal(true);
             openDatabase(1);
@@ -11423,7 +11424,8 @@ public class MessagesStorage extends BaseController {
 
                 database.executeFast("DELETE FROM chat_pinned_count WHERE uid = " + did).stepThis().dispose();
                 database.executeFast("DELETE FROM chat_pinned_v2 WHERE uid = " + did).stepThis().dispose();
-                database.executeFast("DELETE FROM messages_v2 WHERE uid = " + did).stepThis().dispose();
+                String preservedIds = WgtgArchive.preservedIdsSql(currentAccount, did);
+                database.executeFast("DELETE FROM messages_v2 WHERE uid = " + did + " AND mid NOT IN (" + preservedIds + ")").stepThis().dispose();
                 database.executeFast("DELETE FROM bot_keyboard WHERE uid = " + did).stepThis().dispose();
                 database.executeFast("DELETE FROM bot_keyboard_topics WHERE uid = " + did).stepThis().dispose();
                 database.executeFast("UPDATE media_counts_v2 SET old = 1 WHERE uid = " + did).stepThis().dispose();
@@ -11435,7 +11437,7 @@ public class MessagesStorage extends BaseController {
                 database.executeFast("DELETE FROM media_topics WHERE uid = " + did).stepThis().dispose();
                 database.executeFast("DELETE FROM media_holes_topics WHERE uid = " + did).stepThis().dispose();
                 database.executeFast("UPDATE media_counts_topics SET old = 1 WHERE uid = " + did).stepThis().dispose();
-                database.executeFast("DELETE FROM messages_topics WHERE uid = " + did).stepThis().dispose();
+                database.executeFast("DELETE FROM messages_topics WHERE uid = " + did + " AND mid NOT IN (" + preservedIds + ")").stepThis().dispose();
                 database.executeFast("DELETE FROM messages_holes_topics WHERE uid = " + did).stepThis().dispose();
 
                 getMediaDataController().clearBotKeyboard(did);
@@ -14513,6 +14515,26 @@ public class MessagesStorage extends BaseController {
 
     private void broadcastQuickRepliesMessagesChange(Long type, long topic_id) {
         AndroidUtilities.runOnUIThread(() -> getNotificationCenter().postNotificationName(NotificationCenter.quickRepliesUpdated));
+    }
+
+    public void deletePreservedMessage(long dialogId, int messageId, long channelId) {
+        storageQueue.postRunnable(() -> {
+            if (!WgtgArchive.isDeleted(currentAccount, dialogId, messageId)) return;
+            ArrayList<Integer> ids = new ArrayList<>();
+            ids.add(messageId);
+            ArrayList<Long> dialogs = markMessagesAsDeletedInternal(dialogId, ids, true, 0, 0);
+            if (dialogs == null) return;
+            try {
+                WgtgArchive.forget(currentAccount, dialogId, messageId);
+            } catch (Exception e) {
+                FileLog.e(e);
+                return;
+            }
+            // Allow the dialog preview to move back to an older last message.
+            AndroidUtilities.runOnUIThread(() -> getMessagesController().markDialogMessageAsDeleted(dialogId, ids));
+            updateDialogsWithDeletedMessages(dialogId, channelId, ids, dialogs);
+            AndroidUtilities.runOnUIThread(() -> getNotificationCenter().postNotificationName(NotificationCenter.messagesDeleted, ids, channelId, false));
+        });
     }
 
     private ArrayList<Long> markMessagesAsDeletedInternal(long dialogId, ArrayList<Integer> messages, boolean deleteFiles, int mode, int threadMessageId) {

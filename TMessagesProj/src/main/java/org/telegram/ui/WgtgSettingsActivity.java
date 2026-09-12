@@ -1,110 +1,98 @@
 package org.telegram.ui;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
-import android.widget.Switch;
 import android.widget.TextView;
 import org.telegram.messenger.*;
 import org.telegram.ui.ActionBar.*;
+import org.telegram.ui.Cells.HeaderCell;
+import org.telegram.ui.Cells.TextCheckCell;
+import org.telegram.ui.Cells.TextInfoPrivacyCell;
+import org.telegram.ui.Cells.TextSettingsCell;
 
 public class WgtgSettingsActivity extends BaseFragment {
     @Override
     public View createView(Context context) {
-        actionBar.setTitle("wgtg settings");
+        actionBar.setTitle(LocaleController.getString(R.string.WgtgSettings));
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
         ScrollView scroll = new ScrollView(context);
-        scroll.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
-        int padding = AndroidUtilities.dp(20);
-        content.setPadding(padding, padding, padding, padding);
         scroll.addView(content);
-        content.addView(text(context, LocaleController.getString(R.string.WgtgNicknameInfo)));
-        RadioGroup modes = new RadioGroup(context);
-        String[] labels = {LocaleController.getString(R.string.WgtgOff), "static", "chroma", "rgb"};
-        for (int i = 0; i < labels.length; i++) {
-            RadioButton button = new RadioButton(context);
-            button.setId(1000 + i);
-            button.setText(labels[i]);
-            button.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            modes.addView(button);
-        }
-        modes.check(1000 + WgtgConfig.nicknameMode);
-        modes.setOnCheckedChangeListener((group, id) -> WgtgConfig.setNickname(id - 1000, WgtgConfig.nicknameColor));
-        content.addView(modes);
-        EditText color = new EditText(context);
-        color.setSingleLine(true);
-        color.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        color.setText(String.format(java.util.Locale.US, "#%06X", WgtgConfig.nicknameColor & 0xffffff));
-        color.setHint("#RRGGBB");
-        content.addView(color);
-        TextView apply = text(context, LocaleController.getString(R.string.WgtgApplyColor));
-        apply.setOnClickListener(v -> {
-            String value = color.getText().toString().trim();
-            if (!value.matches("#[0-9a-fA-F]{6}")) { color.setError("#RRGGBB"); return; }
-            WgtgConfig.setNickname(1, Color.parseColor(value));
-            modes.check(1001);
-            apply.setTextColor(WgtgConfig.nicknameColor);
-        });
-        content.addView(apply);
-        Switch preserve = new Switch(context);
-        preserve.setText(LocaleController.getString(R.string.WgtgPreserve));
-        preserve.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        preserve.setChecked(WgtgConfig.preserveDeleted(currentAccount));
-        preserve.setOnCheckedChangeListener((button, checked) -> WgtgConfig.setPreserveDeleted(currentAccount, checked));
-        content.addView(preserve);
-        content.addView(text(context, LocaleController.getString(R.string.WgtgArchiveInfo)));
-        Switch ghost = new Switch(context);
-        ghost.setText(LocaleController.getString(R.string.WgtgGhost));
-        ghost.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        ghost.setChecked(WgtgConfig.ghostMode);
-        ghost.setOnCheckedChangeListener((button, checked) -> WgtgConfig.setGhostMode(checked));
-        content.addView(ghost);
-        Switch confirm = new Switch(context);
-        confirm.setText(LocaleController.getString(R.string.WgtgConfirmMedia));
-        confirm.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        confirm.setChecked(WgtgConfig.confirmMedia);
-        confirm.setOnCheckedChangeListener((button, checked) -> WgtgConfig.setConfirmMedia(checked));
-        content.addView(confirm);
-        TextView icons = text(context, LocaleController.getString(R.string.WgtgIcons));
-        icons.setOnClickListener(v -> {
-            WgtgIconSettingsActivity fragment = new WgtgIconSettingsActivity();
-            fragment.setCurrentAccount(currentAccount);
-            presentFragment(fragment);
-        });
-        content.addView(icons);
-        TextView plugins = text(context, LocaleController.getString(R.string.WgtgPlugins));
-        plugins.setOnClickListener(v -> {
-            WgtgPluginsActivity fragment = new WgtgPluginsActivity();
-            fragment.setCurrentAccount(currentAccount);
-            presentFragment(fragment);
-        });
-        content.addView(plugins);
-        TextView playlist = text(context, LocaleController.getString(R.string.WgtgPlaylist));
-        playlist.setOnClickListener(v -> {
-            WgtgPlaylistActivity fragment = new WgtgPlaylistActivity();
-            fragment.setCurrentAccount(currentAccount);
-            presentFragment(fragment);
-        });
-        content.addView(playlist);
-        TextView archive = text(context, LocaleController.getString(R.string.WgtgArchive));
-        archive.setOnClickListener(v -> {
-            WgtgDeletedMessagesActivity fragment = new WgtgDeletedMessagesActivity();
-            fragment.setCurrentAccount(currentAccount);
-            presentFragment(fragment);
-        });
-        content.addView(archive);
+        header(content, R.string.WgtgPrivacy);
+        check(content, R.string.WgtgGhostTitle, R.string.WgtgGhostInfo, WgtgConfig.ghostMode, true,
+                WgtgConfig::setGhostMode);
+        check(content, R.string.WgtgConfirmMedia, 0, WgtgConfig.confirmMedia, false,
+                WgtgConfig::setConfirmMedia);
+        info(content, R.string.WgtgPrivacyInfo);
+        header(content, R.string.WgtgArchive);
+        check(content, R.string.WgtgPreserve, 0, WgtgConfig.preserveDeleted(currentAccount), true,
+                checked -> WgtgConfig.setPreserveDeleted(currentAccount, checked));
+        TextSettingsCell archive = row(content, R.string.WgtgArchive, false);
+        archive.setOnClickListener(v -> open(new WgtgDeletedMessagesActivity()));
+        info(content, R.string.WgtgArchiveInfo);
+        header(content, R.string.WgtgPersonalization);
+        TextSettingsCell icons = row(content, R.string.WgtgIcons, true);
+        icons.setOnClickListener(v -> open(new WgtgIconSettingsActivity()));
+        TextSettingsCell plugins = row(content, R.string.WgtgPlugins, true);
+        plugins.setOnClickListener(v -> open(new WgtgPluginsActivity()));
+        TextSettingsCell playlist = row(content, R.string.WgtgPlaylist, false);
+        playlist.setOnClickListener(v -> open(new WgtgPlaylistActivity()));
+        info(content, R.string.WgtgPersonalizationInfo);
         fragmentView = scroll;
         return fragmentView;
+    }
+
+    private void open(BaseFragment fragment) {
+        fragment.setCurrentAccount(currentAccount);
+        presentFragment(fragment);
+    }
+
+    static void header(LinearLayout content, int title) {
+        HeaderCell cell = new HeaderCell(content.getContext());
+        cell.setText(LocaleController.getString(title));
+        cell.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        content.addView(cell);
+    }
+
+    static TextInfoPrivacyCell info(LinearLayout content, int text) {
+        TextInfoPrivacyCell cell = new TextInfoPrivacyCell(content.getContext());
+        cell.setText(LocaleController.getString(text));
+        content.addView(cell);
+        return cell;
+    }
+
+    static TextSettingsCell row(LinearLayout content, int title, boolean divider) {
+        TextSettingsCell cell = new TextSettingsCell(content.getContext());
+        cell.setText(LocaleController.getString(title), divider);
+        cell.setBackground(Theme.getSelectorDrawable(true));
+        content.addView(cell);
+        return cell;
+    }
+
+    static void check(LinearLayout content, int title, int description, boolean checked,
+                      boolean divider, java.util.function.Consumer<Boolean> onChange) {
+        TextCheckCell cell = new TextCheckCell(content.getContext());
+        if (description == 0) {
+            cell.setTextAndCheck(LocaleController.getString(title), checked, divider);
+        } else {
+            cell.setTextAndValueAndCheck(LocaleController.getString(title),
+                    LocaleController.getString(description), checked, true, divider);
+        }
+        cell.setBackground(Theme.getSelectorDrawable(true));
+        cell.setOnClickListener(v -> {
+            boolean value = !cell.isChecked();
+            onChange.accept(value);
+            cell.setChecked(value);
+        });
+        content.addView(cell);
     }
 
     static TextView text(Context context, CharSequence value) {

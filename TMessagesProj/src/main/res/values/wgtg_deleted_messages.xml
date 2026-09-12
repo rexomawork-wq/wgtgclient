@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="wgtg_delete_local" type="id" />
+    <string name="WgtgDeleteLocal">Delete local copy</string>
+    <string name="WgtgDeleteLocalConfirm">This message was deleted from Telegram. Permanently delete its saved copy from this device?</string>
+</resources>

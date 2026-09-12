@@ -1,0 +1,9 @@
+<resources>
+    <string name="WgtgPluginAppRequirement">Требуемая версия приложения</string>
+    <string name="WgtgPluginSdkRequirement">Требуемая версия SDK плагинов</string>
+    <string name="WgtgPluginDependencies">Зависимости</string>
+    <string name="WgtgPluginDownloadFailed">Не удалось скачать плагин. Попробуйте ещё раз.</string>
+    <string name="WgtgPluginReplacing">Заменит установленную версию:</string>
+    <string name="WgtgPluginRuntimeLimits">Поддерживается часть API exteraGram. Требования к версиям приложения и SDK показаны справочно и не проверяются. Внешние зависимости и Xposed-хуки не поддерживаются.</string>
+    <string name="WgtgPluginInstalledDisabled">Установлен. Включите плагин в разделе Настройки → Плагины. Ошибки загрузки появятся там же.</string>
+</resources>

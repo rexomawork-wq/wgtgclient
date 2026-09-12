@@ -556,6 +556,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     public interface ChatMessageCellDelegate {
+        default void didPressDeletePreservedMessage(ChatMessageCell cell) {
+        }
+
         default boolean isReplyOrSelf() {
             return false;
         }
@@ -1561,6 +1564,35 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private boolean allowAssistant;
     public MessageDrawable currentBackgroundDrawable;
     private MessageDrawable currentBackgroundSelectedDrawable;
+    private final RectF wgtgDeleteBounds = new RectF();
+    private boolean wgtgDeletePressed;
+    private Drawable wgtgDeleteDrawable;
+
+    public boolean isPreservedDeletedMessage() {
+        return currentMessageObject != null && !currentMessageObject.scheduled && !currentMessageObject.isQuickReply()
+            && org.telegram.messenger.WgtgArchive.isDeleted(currentAccount, currentMessageObject.getDialogId(), currentMessageObject.getId());
+    }
+
+    @Override
+    public void draw(Canvas canvas) {
+        if (!isPreservedDeletedMessage()) {
+            wgtgDeleteBounds.setEmpty();
+            super.draw(canvas);
+            return;
+        }
+        int save = canvas.saveLayerAlpha(0, 0, getWidth(), getHeight(), 140);
+        super.draw(canvas);
+        canvas.restoreToCount(save);
+        float left = currentMessageObject.isOutOwner() ? Math.max(0, backgroundDrawableLeft - dp(44))
+            : Math.min(getWidth() - dp(44), backgroundDrawableLeft + backgroundDrawableRight);
+        float top = Math.max(0, Math.min(getHeight() - dp(44), backgroundDrawableTop));
+        wgtgDeleteBounds.set(left, top, left + dp(44), top + dp(44));
+        if (wgtgDeleteDrawable == null) wgtgDeleteDrawable = getResources().getDrawable(R.drawable.msg_delete).mutate();
+        wgtgDeleteDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelIcons), PorterDuff.Mode.SRC_IN));
+        wgtgDeleteDrawable.setBounds((int) left + dp(10), (int) top + dp(10), (int) left + dp(34), (int) top + dp(34));
+        wgtgDeleteDrawable.draw(canvas);
+    }
+
     private int backgroundDrawableLeft;
     private int backgroundDrawableRight;
     private int backgroundDrawableTop;
@@ -4915,6 +4947,24 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (isPreservedDeletedMessage() && delegate != null && delegate.canPerformActions()) {
+            boolean inside = wgtgDeleteBounds.contains(event.getX(), event.getY());
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN && inside) {
+                wgtgDeletePressed = true;
+                return true;
+            }
+            if (wgtgDeletePressed) {
+                if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                    wgtgDeletePressed = false;
+                    if (inside) delegate.didPressDeletePreservedMessage(this);
+                } else if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                    wgtgDeletePressed = false;
+                }
+                return true;
+            }
+        } else {
+            wgtgDeletePressed = false;
+        }
         if (currentMessageObject == null || delegate != null && !delegate.canPerformActions() || animationRunning) {
             if (currentMessageObject != null && currentMessageObject.preview) {
                 return checkTextSelection(event);
@@ -20358,7 +20408,10 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     public void drawBackgroundInternal(Canvas canvas, boolean fromParent) {
+        int save = fromParent && isPreservedDeletedMessage()
+            ? canvas.saveLayerAlpha(0, 0, getWidth(), getHeight(), 140) : -1;
         drawBackgroundInternal(canvas, fromParent, false);
+        if (save != -1) canvas.restoreToCount(save);
     }
 
     @SuppressLint("WrongCall")
@@ -22191,28 +22244,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             canvas.translate(nx, ny);
             oldAlpha = Theme.chat_namePaint.getAlpha();
             Theme.chat_namePaint.setAlpha((int) (oldAlpha * nameAlpha));
-            int wgtgColor = Theme.chat_namePaint.getColor();
-            android.graphics.Shader wgtgShader = Theme.chat_namePaint.getShader();
-            int wgtgMode = org.telegram.messenger.WgtgConfig.nicknameMode;
-            if (viaNameWidth == 0 && wgtgMode != 0) {
-                float hue = (android.os.SystemClock.uptimeMillis() % 6000L) * 360f / 6000f;
-                int nameAlphaValue = Theme.chat_namePaint.getAlpha();
-                if (wgtgMode == 3) {
-                    Theme.chat_namePaint.setShader(new android.graphics.LinearGradient(0, 0, Math.max(1, nameLayout.getWidth()), 0,
-                        new int[]{android.graphics.Color.HSVToColor(new float[]{hue, .8f, 1f}),
-                            android.graphics.Color.HSVToColor(new float[]{(hue + 120) % 360, .8f, 1f}),
-                            android.graphics.Color.HSVToColor(new float[]{(hue + 240) % 360, .8f, 1f})}, null, android.graphics.Shader.TileMode.CLAMP));
-                } else {
-                    Theme.chat_namePaint.setShader(null);
-                    Theme.chat_namePaint.setColor(wgtgMode == 1 ? org.telegram.messenger.WgtgConfig.nicknameColor :
-                        android.graphics.Color.HSVToColor(new float[]{hue, .8f, 1f}));
-                }
-                Theme.chat_namePaint.setAlpha(nameAlphaValue);
-                if (wgtgMode >= 2 && isShown() && hasWindowFocus()) postInvalidateDelayed(50);
-            }
             nameLayout.draw(canvas);
-            Theme.chat_namePaint.setShader(wgtgShader);
-            Theme.chat_namePaint.setColor(wgtgColor);
             Theme.chat_namePaint.setAlpha(oldAlpha);
             canvas.restore();
 
@@ -26596,6 +26628,10 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     public boolean performAccessibilityAction(int action, Bundle arguments) {
+        if (action == R.id.wgtg_delete_local && isPreservedDeletedMessage() && delegate != null && delegate.canPerformActions()) {
+            delegate.didPressDeletePreservedMessage(this);
+            return true;
+        }
         if (delegate != null && delegate.onAccessibilityAction(action, arguments)) {
             return false;
         }
@@ -26693,6 +26729,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     @Override
     public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
         super.onInitializeAccessibilityNodeInfo(info);
+        if (isPreservedDeletedMessage()) {
+            info.addAction(new AccessibilityNodeInfo.AccessibilityAction(R.id.wgtg_delete_local, LocaleController.getString(R.string.WgtgDeleteLocal)));
+        }
     }
 
     @Override
