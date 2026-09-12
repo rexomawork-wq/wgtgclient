@@ -17875,7 +17875,9 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     // must be run from Utilities.stageQueue
-    public void processUpdates(final TLRPC.Updates updates, boolean fromQueue) {
+    public void processUpdates(final TLRPC.Updates originalUpdates, boolean fromQueue) {
+        final TLRPC.Updates updates = fromQueue ? originalUpdates : WgtgPluginsController.beforeUpdates(currentAccount, originalUpdates);
+        if (updates == null) return;
         ArrayList<Long> needGetChannelsDiff = null;
         boolean needGetDiff = false;
         boolean needReceivedQueue = false;
@@ -18497,7 +18499,8 @@ public class MessagesController extends BaseController implements NotificationCe
         long clientUserId = getUserConfig().getClientUserId();
 
         for (int c = 0, size3 = updates.size(); c < size3; c++) {
-            TLRPC.Update baseUpdate = updates.get(c);
+            TLRPC.Update baseUpdate = WgtgPluginsController.beforeUpdate(currentAccount, updates.get(c));
+            if (baseUpdate == null) continue;
             if (BuildVars.LOGS_ENABLED && baseUpdate != null) {
                 FileLog.d("process update " + baseUpdate.getClass().getSimpleName());
             }

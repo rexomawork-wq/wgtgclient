@@ -1,4 +1,9 @@
 -keep public class com.google.android.gms.* { public *; }
+# Called through Chaquopy and Pine's native/reflection entry points.
+-keep class org.telegram.messenger.WgtgMethodHooks** { *; }
+-keep class top.canyie.pine.** { *; }
+# Python resolves MVEL by name; MVEL also instantiates optimizers reflectively.
+-keep class org.mvel2.** { *; }
 -keepnames @com.google.android.gms.common.annotation.KeepName class *
 -keepclassmembernames class * {
     @com.google.android.gms.common.annotation.KeepName *;

@@ -16,6 +16,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.WgtgPluginsController;
+import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -70,8 +71,18 @@ public class WgtgPluginsActivity extends BaseFragment {
                 enabled.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                 enabled.setChecked(plugin.optBoolean("enabled"));
                 enabled.setOnCheckedChangeListener((button, checked) -> {
-                    WgtgPluginsController.setEnabled(id, checked);
-                    redraw();
+                    AlertDialog progress = new AlertDialog(getParentActivity(), AlertDialog.ALERT_TYPE_SPINNER);
+                    progress.setCanCancel(false);
+                    progress.show();
+                    Utilities.globalQueue.postRunnable(() -> {
+                        String error = WgtgPluginsController.setEnabled(id, checked);
+                        AndroidUtilities.runOnUIThread(() -> {
+                            progress.dismiss();
+                            if (destroyed) return;
+                            lastResult = error;
+                            redraw();
+                        });
+                    });
                 });
                 content.addView(enabled);
                 String details = plugin.optString("author");
@@ -90,7 +101,16 @@ public class WgtgPluginsActivity extends BaseFragment {
                     .setTitle(LocaleController.getString(R.string.WgtgRemovePlugin))
                     .setMessage(id)
                     .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
-                    .setPositiveButton(LocaleController.getString(R.string.Delete), (dialog, which) -> { WgtgPluginsController.uninstall(id); redraw(); })
+                    .setPositiveButton(LocaleController.getString(R.string.Delete), (dialog, which) -> {
+                        Utilities.globalQueue.postRunnable(() -> {
+                            String error = WgtgPluginsController.uninstall(id);
+                            AndroidUtilities.runOnUIThread(() -> {
+                                if (destroyed) return;
+                                lastResult = error;
+                                redraw();
+                            });
+                        });
+                    })
                     .show());
                 content.addView(remove);
             }

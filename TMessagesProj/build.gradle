@@ -32,6 +32,8 @@ configurations.all {
 }
 
 dependencies {
+    implementation 'org.mvel:mvel2:2.5.2.Final'
+    implementation 'top.canyie.pine:core:0.3.0'
     implementation 'androidx.core:core:1.16.0'
     implementation 'androidx.palette:palette:1.0.0'
     implementation 'androidx.exifinterface:exifinterface:1.3.6'
@@ -260,7 +262,10 @@ def getProps(String propName) {
 chaquopy {
     defaultConfig {
         version = "3.11"
-        pip { install "PyYAML==6.0.3" }
+        pip {
+            install "PyYAML==6.0.3"
+            install "packaging==24.2"
+        }
         pyc {
             src = false
         }

@@ -4045,6 +4045,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             @Override
             public void onShowSubMenu() {
                 updateScrimSourceBitmap();
+                org.telegram.messenger.WgtgPluginMenus.populate(otherItem,
+                        org.telegram.messenger.WgtgPluginMenus.PROFILE_ACTION_MENU, ProfileActivity.this,
+                        org.telegram.messenger.WgtgPluginMenus.context(ProfileActivity.this, getDialogId(),
+                                getMessagesController().getUser(userId), getMessagesController().getChat(chatId),
+                                userInfo, chatInfo, currentEncryptedChat, null, null,
+                                userInfo == null ? null : userInfo.bot_info));
             }
 
             @Override

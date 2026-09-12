@@ -397,6 +397,7 @@ public class ConnectionsManager extends BaseController {
             if (onCompleteTimestamp != null) onCompleteTimestamp.run(null, error, System.currentTimeMillis());
             return;
         }
+        final String pluginRequestName = org.telegram.messenger.WgtgPluginsController.hookName(originalObject);
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("send request " + object + " with token = " + requestToken);
         }
@@ -462,16 +463,28 @@ public class ConnectionsManager extends BaseController {
                     final TLObject finalResponse = resp;
                     final TLRPC.TL_error finalError = error;
                     Utilities.stageQueue.postRunnable(() -> {
-                        if (onComplete != null) {
-                            onComplete.run(finalResponse, finalError);
-                        } else if (onCompleteTimestamp != null) {
-                            onCompleteTimestamp.run(finalResponse, finalError, timestamp);
-                        } else if (finalResponse instanceof TLRPC.Updates) {
-                            KeepAliveJob.finishJob();
-                            AccountInstance.getInstance(currentAccount).getMessagesController().processUpdates((TLRPC.Updates) finalResponse, false);
-                        }
-                        if (finalResponse != null) {
-                            finalResponse.freeResources();
+                        org.telegram.messenger.WgtgPluginsController.ResponseResult hookResult =
+                                org.telegram.messenger.WgtgPluginsController.afterRequest(pluginRequestName, currentAccount, finalResponse, finalError);
+                        TLObject deliveredResponse = hookResult.response;
+                        try {
+                            // Receiving automatic updates completes the keep-alive job even
+                            // when a plugin suppresses or replaces their delivery.
+                            if (onComplete == null && onCompleteTimestamp == null
+                                    && (finalResponse instanceof TLRPC.Updates || deliveredResponse instanceof TLRPC.Updates)) {
+                                KeepAliveJob.finishJob();
+                            }
+                            if (hookResult.cancelled) return;
+                            if (deliveredResponse != null) deliveredResponse.networkType = networkType;
+                            if (onComplete != null) {
+                                onComplete.run(deliveredResponse, finalError);
+                            } else if (onCompleteTimestamp != null) {
+                                onCompleteTimestamp.run(deliveredResponse, finalError, timestamp);
+                            } else if (deliveredResponse instanceof TLRPC.Updates) {
+                                AccountInstance.getInstance(currentAccount).getMessagesController().processUpdates((TLRPC.Updates) deliveredResponse, false);
+                            }
+                        } finally {
+                            if (finalResponse != null) finalResponse.freeResources();
+                            if (deliveredResponse != null && deliveredResponse != finalResponse) deliveredResponse.freeResources();
                         }
                     });
                 } catch (Exception e) {

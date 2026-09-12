@@ -1,7 +1,25 @@
-from java import jclass, dynamic_proxy
+from java import jclass
+from elyx._proxies import gen
+
 AndroidUtilities = jclass("org.telegram.messenger.AndroidUtilities")
-class _Runnable(dynamic_proxy(jclass("java.lang.Runnable"))):
-    def __init__(self, callback): super().__init__(); self.callback = callback
-    def run(self): self.callback()
-def run_on_ui_thread(callback, delay=0): AndroidUtilities.runOnUIThread(_Runnable(callback), int(delay))
-def log(value): print(value)
+R = gen(jclass("java.lang.Runnable"), "run")
+OnClickListener = gen(jclass("android.view.View$OnClickListener"), "onClick")
+OnLongClickListener = gen(jclass("android.view.View$OnLongClickListener"), "onLongClick", True, False)
+
+
+def run_on_ui_thread(callback, delay=0):
+    AndroidUtilities.runOnUIThread(R(callback), int(delay))
+
+
+def log(value):
+    jclass("org.telegram.messenger.FileLog").d(str(value))
+
+
+def copy_to_clipboard(text):
+    def copy():
+        context = jclass("org.telegram.messenger.ApplicationLoader").applicationContext
+        clipboard = context.getSystemService("clipboard")
+        clipboard.setPrimaryClip(jclass("android.content.ClipData").newPlainText("", str(text)))
+        from ui.bulletin import BulletinHelper
+        BulletinHelper.show_copied_to_clipboard()
+    run_on_ui_thread(copy)

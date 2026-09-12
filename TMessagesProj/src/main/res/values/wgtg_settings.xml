@@ -22,7 +22,7 @@
     <string name="WgtgPlay">Play combined playlist</string>
     <string name="WgtgNoMusic">No music found in selected chats</string>
     <string name="WgtgPlugins">Plugins</string>
-    <string name="WgtgPluginsWarning">Python 3.11 plugin engine. Supports .plugin, .py and Elyx ZIP archives. Basic exteraGram lifecycle, settings storage, request hooks and outgoing-message hooks are available. Xposed hooks, plugin menu injection, wheels and PIP dependencies are not supported yet.</string>
+    <string name="WgtgPluginsWarning">Python 3.11 plugin engine. Supports .plugin, .py and Elyx ZIP archives with a subset of exteraGram hooks, menus and settings. Dependencies require compatible pure-Python wheels; conflicting libraries are rejected.</string>
     <string name="WgtgPluginAccessWarning">Plugins are executable code and receive the same Telegram data and permissions as wgtg. Install only code you trust. A malicious plugin can read messages or send requests as you.</string>
     <string name="WgtgInstallPlugin">Install plugin</string>
     <string name="WgtgRemovePlugin">Remove plugin</string>

@@ -1,9 +1,10 @@
 <resources>
+    <string name="WgtgPluginDecline">No</string>
     <string name="WgtgPluginAppRequirement">Required app version</string>
     <string name="WgtgPluginSdkRequirement">Required plugin SDK</string>
     <string name="WgtgPluginDependencies">Dependencies</string>
     <string name="WgtgPluginDownloadFailed">Could not download the plugin. Try again.</string>
     <string name="WgtgPluginReplacing">Replaces installed version:</string>
-    <string name="WgtgPluginRuntimeLimits">Partial exteraGram API support. App/SDK version requirements are shown for reference, not verified. External dependencies and Xposed hooks are unsupported.</string>
+    <string name="WgtgPluginRuntimeLimits">Partial exteraGram API support. App/SDK version requirements are shown for reference, not verified. Dependencies require compatible pure-Python wheels. Libraries conflicting with the app or another active plugin are rejected.</string>
     <string name="WgtgPluginInstalledDisabled">Installed. Enable the plugin in Settings → Plugins. Loading errors will appear there.</string>
 </resources>

@@ -867,6 +867,15 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     private Object onBackAnimationCallback;
     private Object onBackInvokedCallback;
 
+    public void addPluginDrawerItems(org.telegram.ui.Components.ItemOptions options, BaseFragment fragment) {
+        if (isFinishing() || isDestroyed() || fragment.getParentActivity() != this || fragment.isFinished) return;
+        // This branch hosts the former drawer actions in the dialogs overflow menu.
+        HashMap<String, Object> context = org.telegram.messenger.WgtgPluginMenus.context(fragment);
+        context.put("context", this);
+        org.telegram.messenger.WgtgPluginMenus.append(options,
+                org.telegram.messenger.WgtgPluginMenus.DRAWER_MENU, fragment, context);
+    }
+
     public static void showAttachMenuBot(LaunchActivity launchActivity, int currentAccount, TLRPC.TL_attachMenuBot attachMenuBot, String startApp, boolean sidemenu) {
         BaseFragment lastFragment = getLastFragment();
         if (lastFragment == null) return;
@@ -6725,6 +6734,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     @Override
     protected void onPause() {
         super.onPause();
+        org.telegram.messenger.WgtgPluginsController.onAppEvent(org.telegram.messenger.WgtgPluginsController.APP_PAUSE);
         isResumed = false;
         pipActivityHandler.onPause();
         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.stopAllHeavyOperations, 4096);
@@ -6960,6 +6970,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     @Override
     protected void onResume() {
         super.onResume();
+        org.telegram.messenger.WgtgPluginsController.onAppEvent(org.telegram.messenger.WgtgPluginsController.APP_RESUME);
         isResumed = true;
         pipActivityHandler.onResume();
         if (onResumeStaticCallback != null) {

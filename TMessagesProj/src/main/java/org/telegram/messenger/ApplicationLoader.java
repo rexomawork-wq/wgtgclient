@@ -187,6 +187,12 @@ public class ApplicationLoader extends Application {
         return null;
     }
 
+    @Override
+    public void onTerminate() {
+        WgtgPluginsController.shutdownAsync();
+        super.onTerminate();
+    }
+
     public static void postInitApplication() {
         if (applicationInited || applicationContext == null) {
             return;

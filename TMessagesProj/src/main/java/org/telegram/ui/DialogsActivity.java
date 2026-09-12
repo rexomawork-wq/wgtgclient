@@ -13736,6 +13736,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (ApplicationLoader.applicationLoaderInstance != null) {
             ApplicationLoader.applicationLoaderInstance.addItemOptions(io);
         }
+        if (launchActivity != null) {
+            launchActivity.addPluginDrawerItems(io, this);
+        }
         TLRPC.TL_attachMenuBots menuBots = MediaDataController.getInstance(UserConfig.selectedAccount).getAttachMenuBots();
         if (launchActivity != null && menuBots != null && menuBots.bots != null && !menuBots.bots.isEmpty()) {
             for (TLRPC.TL_attachMenuBot attachMenuBot : menuBots.bots) {
@@ -13787,6 +13790,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         }
 
+        org.telegram.messenger.WgtgPluginMenus.append(io,
+                org.telegram.messenger.WgtgPluginMenus.MAIN_MENU, this,
+                org.telegram.messenger.WgtgPluginMenus.context(this));
         io.show();
         io.setTranslationY(-dp(64));
     }

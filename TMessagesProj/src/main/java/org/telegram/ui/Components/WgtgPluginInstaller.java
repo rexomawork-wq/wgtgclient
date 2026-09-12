@@ -91,9 +91,10 @@ public final class WgtgPluginInstaller {
                         + "\n" + AndroidUtilities.formatFileSize(prepared.length())
                         + "\n\n" + meta.optString("description");
                     if (!meta.isNull("installed_version")) details += "\n\n" + LocaleController.getString(R.string.WgtgPluginReplacing) + " " + meta.optString("installed_version");
-                    String[] requirementKeys = {"app_version", "sdk_version", "min_version", "requirements", "requires"};
+                    String[] requirementKeys = {"app_version", "sdk_version", "min_version", "requirements", "requires", "wheels"};
                     int[] requirementLabels = {R.string.WgtgPluginAppRequirement, R.string.WgtgPluginSdkRequirement,
-                        R.string.WgtgPluginAppRequirement, R.string.WgtgPluginDependencies, R.string.WgtgPluginDependencies};
+                        R.string.WgtgPluginAppRequirement, R.string.WgtgPluginDependencies, R.string.WgtgPluginDependencies,
+                        R.string.WgtgPluginDependencies};
                     for (int i = 0; i < requirementKeys.length; i++) {
                         String value = meta.optString(requirementKeys[i]);
                         if (!value.isEmpty()) details += "\n" + LocaleController.getString(requirementLabels[i]) + ": " + value;
@@ -108,7 +109,7 @@ public final class WgtgPluginInstaller {
                     AlertDialog dialog = new AlertDialog.Builder(activity, resources)
                         .setTitle(LocaleController.getString(R.string.WgtgInstallPlugin))
                         .setMessage(formatted)
-                        .setNegativeButton(LocaleController.getString(R.string.No), null)
+                        .setNegativeButton(LocaleController.getString(R.string.WgtgPluginDecline), null)
                         .setPositiveButton(LocaleController.getString(R.string.WgtgInstallPlugin), (d, which) -> {
                             installing[0] = true;
                             AlertDialog installProgress = new AlertDialog(activity, AlertDialog.ALERT_TYPE_SPINNER, resources);

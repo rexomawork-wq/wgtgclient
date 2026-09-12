@@ -22,7 +22,7 @@
     <string name="WgtgPlay">Запустить общий плейлист</string>
     <string name="WgtgNoMusic">В выбранных чатах музыка не найдена</string>
     <string name="WgtgPlugins">Плагины</string>
-    <string name="WgtgPluginsWarning">Движок плагинов Python 3.11. Поддерживает .plugin, .py и ZIP-архивы Elyx. Доступны базовый lifecycle exteraGram, хранилище настроек, перехват запросов и исходящих сообщений. Xposed-хуки, добавление пунктов меню, wheels и PIP-зависимости пока не поддерживаются.</string>
+    <string name="WgtgPluginsWarning">Движок плагинов Python 3.11. Поддерживает .plugin, .py и ZIP-архивы Elyx с частью хуков, меню и настроек exteraGram. Зависимости требуют совместимых wheels на чистом Python; конфликтующие библиотеки отклоняются.</string>
     <string name="WgtgPluginAccessWarning">Плагины являются исполняемым кодом и получают те же данные Telegram и разрешения, что и wgtg. Устанавливай только доверенный код. Вредоносный плагин может читать сообщения или отправлять запросы от твоего имени.</string>
     <string name="WgtgInstallPlugin">Установить плагин</string>
     <string name="WgtgRemovePlugin">Удалить плагин</string>

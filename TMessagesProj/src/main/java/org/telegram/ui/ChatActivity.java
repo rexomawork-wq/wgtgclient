@@ -4316,6 +4316,11 @@ public class ChatActivity extends BaseFragment implements
                 @Override
                 public void onShowSubMenu() {
                     updateScrimSourceBitmap();
+                    org.telegram.messenger.WgtgPluginMenus.populate(headerItem,
+                            org.telegram.messenger.WgtgPluginMenus.CHAT_ACTION_MENU, ChatActivity.this,
+                            org.telegram.messenger.WgtgPluginMenus.context(ChatActivity.this, dialog_id,
+                                    currentUser, currentChat, getMessagesController().getUserFull(currentUser == null ? 0 : currentUser.id),
+                                    chatInfo, currentEncryptedChat, null, null, botInfo));
                 }
 
                 @Override
@@ -32073,6 +32078,12 @@ public class ChatActivity extends BaseFragment implements
                 tapAndHoldView.setMinimumHeight(dp(32));
                 popupLayout.addView(tapAndHoldView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
             }
+
+            org.telegram.messenger.WgtgPluginMenus.append(popupLayout,
+                    org.telegram.messenger.WgtgPluginMenus.MESSAGE_CONTEXT_MENU, this,
+                    org.telegram.messenger.WgtgPluginMenus.context(this, dialog_id, currentUser, currentChat,
+                            getMessagesController().getUserFull(currentUser == null ? 0 : currentUser.id),
+                            chatInfo, currentEncryptedChat, message, groupedMessages, botInfo), () -> closeMenu(false));
 
             ChatScrimPopupContainerLayout scrimPopupContainerLayout = new ChatScrimPopupContainerLayout(contentView.getContext()) {
                 @Override
