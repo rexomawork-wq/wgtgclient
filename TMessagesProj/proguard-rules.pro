@@ -3,7 +3,9 @@
 -keep class org.telegram.messenger.WgtgMethodHooks** { *; }
 -keep class top.canyie.pine.** { *; }
 # Python resolves MVEL by name; MVEL also instantiates optimizers reflectively.
--keep class org.mvel2.** { *; }
+-keep class !org.mvel2.jsr223.**,org.mvel2.** { *; }
+# The unused JSR-223 adapter references desktop APIs absent from Android.
+-dontwarn javax.script.**
 -keepnames @com.google.android.gms.common.annotation.KeepName class *
 -keepclassmembernames class * {
     @com.google.android.gms.common.annotation.KeepName *;

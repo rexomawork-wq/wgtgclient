@@ -106,6 +106,10 @@ android {
     buildToolsVersion '36.0.0'
     ndkVersion "27.2.12479018"
 
+    packagingOptions {
+        resources.excludes += 'META-INF/services/javax.script.ScriptEngineFactory'
+    }
+
     sourceSets.main.jniLibs.srcDirs = ['./jni/']
 
     externalNativeBuild {

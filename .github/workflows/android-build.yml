@@ -124,7 +124,6 @@ jobs:
         run: |
           cat > local.properties << EOF
           sdk.dir=${ANDROID_SDK_ROOT}
-          ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.2.12479018
           EOF
 
       - name: Build Debug APK (regular)
@@ -136,14 +135,28 @@ jobs:
       - name: Build Debug APK (standalone)
         run: ./gradlew :TMessagesProj_AppStandalone:assembleAfatDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx8g -XX:MaxMetaspaceSize=1g"
 
-      - name: Upload Debug APKs
+      - name: Upload Debug APK (regular)
         uses: actions/upload-artifact@v4
         with:
-          name: debug-apks
-          path: |
-            TMessagesProj_App/build/outputs/apk/afat/debug/*.apk
-            TMessagesProj_AppHuawei/build/outputs/apk/afat/debug/*.apk
-            TMessagesProj_AppStandalone/build/outputs/apk/afat/debug/*.apk
+          name: debug-regular-apk
+          path: TMessagesProj_App/build/outputs/apk/afat/debug/app.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Debug APK (Huawei)
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-huawei-apk
+          path: TMessagesProj_AppHuawei/build/outputs/apk/afat/debug/app-huawei.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Debug APK (standalone)
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-standalone-apk
+          path: TMessagesProj_AppStandalone/build/outputs/apk/afat/debug/app.apk
+          if-no-files-found: error
           retention-days: 7
 
   lint:
@@ -215,7 +228,6 @@ jobs:
         run: |
           cat > local.properties << EOF
           sdk.dir=${ANDROID_SDK_ROOT}
-          ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.2.12479018
           EOF
 
       - name: Run Lint
@@ -306,7 +318,6 @@ jobs:
         run: |
           cat > local.properties << EOF
           sdk.dir=${ANDROID_SDK_ROOT}
-          ndk.dir=${ANDROID_SDK_ROOT}/ndk/27.2.12479018
           RELEASE_STORE_PASSWORD=${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_PASSWORD=${{ secrets.RELEASE_KEY_PASSWORD }}
           RELEASE_KEY_ALIAS=${{ secrets.RELEASE_KEY_ALIAS }}
@@ -325,12 +336,26 @@ jobs:
       - name: Build Release APK (standalone)
         run: ./gradlew :TMessagesProj_AppStandalone:assembleAfatRelease --no-daemon -Dorg.gradle.jvmargs="-Xmx8g -XX:MaxMetaspaceSize=1g"
 
-      - name: Upload Release APKs
+      - name: Upload Release APK (regular)
         uses: actions/upload-artifact@v4
         with:
-          name: release-apks
-          path: |
-            TMessagesProj_App/build/outputs/apk/afat/release/*.apk
-            TMessagesProj_AppHuawei/build/outputs/apk/afat/release/*.apk
-            TMessagesProj_AppStandalone/build/outputs/apk/afat/release/*.apk
+          name: release-regular-apk
+          path: TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Release APK (Huawei)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-huawei-apk
+          path: TMessagesProj_AppHuawei/build/outputs/apk/afat/release/app-huawei.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Release APK (standalone)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-standalone-apk
+          path: TMessagesProj_AppStandalone/build/outputs/apk/afat/release/app.apk
+          if-no-files-found: error
           retention-days: 30

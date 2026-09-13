@@ -31,6 +31,7 @@ dependencies {
 android {
     compileSdkVersion 36
     buildToolsVersion '36.0.0'
+    ndkVersion "27.2.12479018"
 
     defaultConfig.applicationId = APP_PACKAGE
 
@@ -140,7 +141,6 @@ android {
         minSdkVersion 26
         targetSdkVersion 36
         versionName APP_VERSION_NAME
-        ndkVersion "27.2.12479018"
 
         multiDexEnabled true
 
@@ -167,4 +167,3 @@ android {
         checkReleaseBuilds false
     }
 }
-
